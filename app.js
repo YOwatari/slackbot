@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const { App, LogLevel } = require('@slack/bolt');
+const { App, LogLevel, directMention } = require('@slack/bolt');
 const { google } = require('googleapis');
 const customSearch = google.customsearch('v1');
 
@@ -12,7 +12,13 @@ const app = new App({
     socketMode: true,
 });
 
-app.message(/^jpi\s(.+)/, async ({ context, say }) => {
+async function noBotMessages({ message, next }) {
+    if (!message.subtype || message.subtype !== 'bot_message') {
+        await next();
+    }
+}
+
+app.message(/^jpi\s(.+)/, noBotMessages, async ({ context, say }) => {
     const keyword = context.matches[1];
 
     const result = await customSearch.cse.list({
@@ -24,7 +30,7 @@ app.message(/^jpi\s(.+)/, async ({ context, say }) => {
     });
     const urls = result.data.items.map(item => item.link).filter(link => !link.match(/(ameba|fc2|pbs)/));
 
-    if (urls.length == 0) {
+    if (urls.length === 0) {
         await say('そんな画像はないパカ');
     } else {
         await say({
@@ -43,7 +49,7 @@ app.message(/^jpi\s(.+)/, async ({ context, say }) => {
     }
 });
 
-app.message(/選んで\s(.+)/, async ({ context, say }) => {
+app.message(/選んで\s(.+)/, directMention(), async ({ context, say }) => {
     const items = context.matches[1].split(/\s/);
     await say(`${items[Math.floor(Math.random()*items.length)]} を選んであげたパカ`);
 });
