@@ -43,6 +43,12 @@ app.message(/^jpi\s(.+)/, async ({ context, say }) => {
     }
 });
 
+app.message(/選んで\s(.+)/, async ({ context, say }) => {
+    const items = context.matches[1].split(/\s/);
+    await say(`${items[Math.floor(Math.random()*items.length)]} を選んであげたパカ`);
+});
+
+
 (async () => {
     await app.start(process.env.PORT || 3000);
     console.log('Bolt app is running');
