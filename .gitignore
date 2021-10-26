@@ -103,9 +103,3 @@ dist
 # TernJS port file
 .tern-port
 
-# tmp
-*.zip
-
-vendor/
-!vendor/bin/.gitkeep
-
