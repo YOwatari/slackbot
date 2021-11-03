@@ -1,14 +1,16 @@
-IMAGE     := slackbot
+IMAGE     := yowatari/slackbot
 CONTAINER := slackbot
 
-run: build
+all: build run
+
+run: stop
 	docker run -d --restart=always --env-file $(CURDIR)/.env --name $(CONTAINER) $(IMAGE)
 
 build:
 	pack build $(IMAGE) --builder heroku/buildpacks:20
 
 stop:
-	-docker stop $(CONTAINER)
+	-docker rm -f $(CONTAINER)
 
-
-
+logs:
+	docker logs $(CONTAINER) -f
