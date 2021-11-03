@@ -1,4 +1,4 @@
-IMAGE     := slackbot
+IMAGE     := yowatari/slackbot
 CONTAINER := slackbot
 
 run: build
@@ -8,7 +8,4 @@ build:
 	pack build $(IMAGE) --builder heroku/buildpacks:20
 
 stop:
-	-docker stop $(CONTAINER)
-
-
-
+	-docker rm -f $(CONTAINER)
