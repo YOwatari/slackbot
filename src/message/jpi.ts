@@ -2,7 +2,7 @@ import type {App} from "@slack/bolt";
 import {noBotMessages} from "../misc";
 import {google} from "googleapis";
 
-const cs = google.customsearch('v1');
+const cs = google.customsearch("v1");
 
 export function listen(app: App, key?: string, engine?: string) {
     app.message(/^jpi\s(.*)/, noBotMessages(), async ({context, say}) => {
@@ -13,12 +13,12 @@ export function listen(app: App, key?: string, engine?: string) {
            cx: engine,
            q: keyword,
            searchType: "image",
-           safe: 'high',
+           safe: "high",
        });
-        const urls: string[] = result.data.items?.map(item => item.link).filter(link => !link?.match(/ameba|fc2|pbs/)) as string[];
+       const urls: string[] = result.data.items?.map(item => item.link).filter(link => !link?.match(/ameba|fc2|pbs/)) as string[];
 
        if (urls.length === 0) {
-           await say('そんな画像はないパカ');
+           await say("そんな画像はないパカ");
        } else {
            await say({
                text: keyword,
