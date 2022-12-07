@@ -5,7 +5,7 @@ import {google} from "googleapis";
 const cs = google.customsearch('v1');
 
 export function listen(app: App, key?: string, engine?: string) {
-    app.message(/^jpi\s(.*)/, noBotMessages(), async ({context, say}) => {
+    app.message(/^!jpi\s(.*)/, noBotMessages(), async ({context, say}) => {
        const keyword = context["matches"][1];
 
        const result = await cs.cse.list({
