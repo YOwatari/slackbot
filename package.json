@@ -29,5 +29,8 @@
   "devDependencies": {
     "@types/node": "^16.11.6",
     "source-map-support": "^0.5.20"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
