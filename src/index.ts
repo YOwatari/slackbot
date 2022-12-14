@@ -1,8 +1,9 @@
-import { App, LogLevel } from "@slack/bolt";
+import slack from "@slack/bolt";
+const { App, LogLevel } = slack;
 
-import { listen as jpi } from "./message/jpi";
-import { listen as erande } from "./message/erande";
-import { listen as chat } from "./message/chat";
+import { listen as jpi } from "./message/jpi.js";
+import { listen as erande } from "./message/erande.js";
+import { listen as chat } from "./message/chat.js";
 
 const app = new App({
     logLevel: LogLevel.DEBUG,

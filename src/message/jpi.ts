@@ -1,5 +1,5 @@
 import type { App } from "@slack/bolt";
-import { noBotMessages } from "../misc";
+import { noBotMessages } from "../misc.js";
 import { google } from "googleapis";
 
 const cs = google.customsearch("v1");

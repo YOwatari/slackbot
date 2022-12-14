@@ -1,4 +1,4 @@
-import {App, directMention} from "@slack/bolt";
+import {type App, directMention} from "@slack/bolt";
 
 export function listen (app: App) {
     app.message(/選んで\s(.+)/, directMention(), async ({ context, say }) => {
