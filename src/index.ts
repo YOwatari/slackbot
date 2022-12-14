@@ -14,14 +14,9 @@ const app = new App({
   socketMode: true,
 })
 
-jpi(
-  app,
-  process.env['GOOGLE_API_KEY'],
-  process.env['GOOGLE_CUSTOM_SEARCH_ENGINE_ID']
-)
+jpi(app, process.env['GOOGLE_API_KEY'], process.env['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'])
 erande(app)
 chat(app, process.env['OPENAI_EMAIL'], process.env['OPENAI_PASSWORD'])
-
 ;(async () => {
   await app.start(Number(process.env['PORT']) || 3000)
   console.log('Bolt app is running')
