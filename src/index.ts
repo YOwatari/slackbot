@@ -22,9 +22,9 @@ const chatgpt = new ChatGPTAPIBrowser({
 ;(async () => {
   jpi(app, process.env['GOOGLE_API_KEY'], process.env['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'])
   erande(app)
+  chat(app, chatgpt)
 
   await chatgpt.initSession()
-  chat(app, chatgpt)
   await app.start(Number(process.env['PORT']) || 3000)
   console.log('Bolt app is running')
 })()

@@ -4,7 +4,7 @@ CONTAINER := slackbot
 all: build run
 
 run: stop
-	docker run -d --restart=always --init --env-file $(CURDIR)/.env --name $(CONTAINER) $(IMAGE)
+	docker run -d --restart=always --env DISPLAY=host.docker.internal:0.0 --env-file $(CURDIR)/.env --name $(CONTAINER) $(IMAGE)
 
 build:
 	docker buildx build -t $(IMAGE) --load .
