@@ -16,6 +16,11 @@ RUN \
   && apt-get install -y google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
     --no-install-recommends
 
+RUN \
+  --mount=type=cache,target=/var/lib/apt/lists \
+  --mount=type=cache,target=/var/cache/apt/archives \
+  apt-get install -y xvfb xauth --no-install-recommends
+
 WORKDIR  /workspace
 COPY package.json .
 COPY package-lock.json .
@@ -25,4 +30,5 @@ COPY . .
 RUN npm run build
 
 EXPOSE 3000
-ENTRYPOINT ["npm", "start"]
+ENTRYPOINT ["bash"]
+CMD ["-c", "xvfb-run -e /dev/stdout --server-args=\"-screen 0 1024x768x24\" npm start"]

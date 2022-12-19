@@ -1,17 +1,12 @@
 import type { App } from '@slack/bolt'
 import { noBotMessages } from '../misc.js'
-import { ChatGPTAPI, getOpenAIAuth } from 'chatgpt'
+import type { ChatGPTAPIBrowser } from "chatgpt";
 
-export function listen(app: App, email?: string, password?: string) {
+export function listen(app: App, api: ChatGPTAPIBrowser) {
   app.message(/^!chat\s(.*)/, noBotMessages(), async ({ context, say }) => {
-    const openAIAuth = await getOpenAIAuth({ email, password })
-
-    const api = new ChatGPTAPI({ ...openAIAuth })
-    await api.ensureAuth()
-
     const prompt = context['matches'][1]
-    const response = await api.sendMessage(prompt)
+    const result = await api.sendMessage(prompt, {timeoutMs: 2 * 60 * 1000})
 
-    await say(response)
+    await say(result.response)
   })
 }
