@@ -10,3 +10,9 @@ export function listen(app: App, api: ChatGPTAPIBrowser) {
     await say(result.response)
   })
 }
+
+export function listenUnavailable(app: App) {
+  app.message(/^!chat\s(.*)/, noBotMessages(), async ({ context, say }) => {
+    await say('chat.openai.com/chat is at capacity right now')
+  })
+}
