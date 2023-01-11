@@ -10,16 +10,14 @@ import { listen as chat, listenUnavailable as nochat } from './message/chat.js'
 const app = new App({
   token: process.env['SLACK_BOT_TOKEN'],
   signingSecret: process.env['SLACK_SIGNING_SECRET'],
-  appToken: process.env['SLACK_APP_TOKEN'],
   socketMode: true,
+  appToken: process.env['SLACK_APP_TOKEN'],
 })
 
-/*
-const chatgpt = new ChatGPTAPIBrowser({
-  email: String(process.env['OPENAI_EMAIL'] || ''),
-  password: String(process.env['OPENAI_PASSWORD'] || ''),
-})
- */
+// const chatgpt = new ChatGPTAPIBrowser({
+//   email: String(process.env['OPENAI_EMAIL'] || ''),
+//   password: String(process.env['OPENAI_PASSWORD'] || ''),
+// })
 
 ;(async () => {
   jpi(app, process.env['GOOGLE_API_KEY'], process.env['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'])
