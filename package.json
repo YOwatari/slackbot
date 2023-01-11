@@ -1,6 +1,6 @@
 {
   "name": "slackbot",
-  "version": "1.0.0",
+  "version": "2023.1.0",
   "description": "",
   "type": "module",
   "source": "./src/index.ts",
@@ -41,6 +41,6 @@
     "source-map-support": "^0.5.20"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=18.3"
   }
 }
