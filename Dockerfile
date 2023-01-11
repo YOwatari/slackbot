@@ -31,6 +31,7 @@ RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev
 COPY . .
 RUN npm run build
 
+ENV PORT 3000
 EXPOSE 3000
 ENTRYPOINT ["npm"]
 CMD ["start"]
