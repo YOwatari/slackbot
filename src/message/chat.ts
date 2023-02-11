@@ -1,19 +1,28 @@
 import type { App } from '@slack/bolt'
 import { noBotMessages } from '../misc.js'
-import type { ChatGPTAPIBrowser } from "chatgpt";
+import { ChatGPTAPI, ChatGPTError } from "chatgpt";
+import { TimeoutError } from "p-timeout"
 
-export function listen(app: App, api: ChatGPTAPIBrowser) {
+export function listen(app: App, key: string) {
   app.message(/^!chat\s(.*)/, noBotMessages(), async ({ context, say }) => {
+    const api = new ChatGPTAPI({
+      apiKey: key,
+    })
     const prompt = context['matches'][1]
-    await api.resetThread()
-    const result = await api.sendMessage(prompt)
 
-    await say(">" + prompt + "\n" + result.response)
-  })
-}
-
-export function listenUnavailable(app: App) {
-  app.message(/^!chat\s(.*)/, noBotMessages(), async ({ context, say }) => {
-    await say('chat.openai.com/chat is at capacity right now')
+    let msg: string
+    try {
+      const result = await api.sendMessage(prompt, {timeoutMs: 2 * 60 * 1000})
+      msg = result.text
+    } catch (e) {
+      if (e instanceof TimeoutError) {
+        msg = "Sorry, `" + e.message + "` :bow:"
+      } else if (e instanceof Error) {
+        msg = "Sorry, `" + e.message + "` :cry:"
+      } else {
+        msg = "Sorry, an unexpected error has occurred :sob:"
+      }
+    }
+    await say(">" + prompt + "\n" + msg)
   })
 }
