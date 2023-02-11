@@ -1,19 +1,25 @@
-IMAGE     := yowatari/slackbot
-CONTAINER := slackbot
+IMAGE := yowatari/slackbot
 
-all: build run
+all: build stop run
 
-run: stop
-	docker run -d --restart=always --env DISPLAY=host.docker.internal:0.0 --env-file $(CURDIR)/.env --name $(CONTAINER) $(IMAGE)
+run:
+	$(MAKE) slackbot.cid
 
-run_slim: stop
-	docker run -d --restart=always --env DISPLAY=host.docker.internal:0.0 --env-file $(CURDIR)/.env --name $(CONTAINER) $(IMAGE) start -- --nochatgpt
+slackbot.cid:
+	docker run -d \
+	  --restart=always \
+	  --env-file $(CURDIR)/.env \
+	  --name $(basename $@) \
+	  --cidfile $@ \
+	  $(IMAGE)
 
 build:
-	docker buildx build -t $(IMAGE) --load .
+	pack build $(IMAGE) --builder heroku/buildpacks:20
 
 stop:
-	-docker rm -f $(CONTAINER)
+	-docker rm -f $$(cat slackbot.cid)
+	-docker rm -f slackbot
+	rm slackbot.cid
 
-logs:
-	docker logs $(CONTAINER) -f
+logs: slackbot.cid
+	docker logs $$(cat $<) -f
