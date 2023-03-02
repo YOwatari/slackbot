@@ -1,6 +1,6 @@
 import type { App } from '@slack/bolt'
 import { noBotMessages } from '../misc.js'
-import { ChatGPTAPI, ChatGPTError } from "chatgpt";
+import { ChatGPTAPI } from "chatgpt";
 import { TimeoutError } from "p-timeout"
 
 export function listen(app: App, key: string) {
