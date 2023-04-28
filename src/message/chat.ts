@@ -7,6 +7,9 @@ export function listen(app: App, key: string) {
   app.message(/^!chat\s(.*)/, noBotMessages(), async ({ context, say }) => {
     const api = new ChatGPTAPI({
       apiKey: key,
+      completionParams: {
+        model: 'gpt-4',
+      }
     })
     const prompt = context['matches'][1]
 
