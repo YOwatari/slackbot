@@ -12,7 +12,7 @@ export const slackSetupMiddleware = (): MiddlewareHandler => {
     const botAccessToken = ctx.env.SLACK_BOT_TOKEN
     const client = new SlackREST({ botAccessToken })
 
-    const result: auth = await client.auth.test({botAccessToken})
+    const result: auth = await client.auth.test({ botAccessToken })
     if (result.bot_id === undefined || result.bot_id === null) {
       return ctx.json({ ok: false, error: 'not using a bot user token' }, 503)
     }
@@ -37,7 +37,7 @@ export const slackVerifierMiddleware = (): MiddlewareHandler => {
       if (e instanceof Error) {
         return ctx.json({ ok: false, error: e.message })
       }
-      return ctx.json({ ok: false})
+      return ctx.json({ ok: false })
     }
 
     await next()
