@@ -1,8 +1,8 @@
 declare module '@sagi.io/workers-slack'
 
-type slackRESTClient = {
+type SlackRESTClient = {
   auth: {
-    test: () => any
+    test: (any) => any
   }
   chat: {
     postMessage: (any) => any

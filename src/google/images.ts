@@ -6,7 +6,7 @@ type result = {
   ]
 }
 
-async function images(q: string, auth?: string, cx?: string): Promise<string[]> {
+export async function images(q: string, auth?: string, cx?: string): Promise<string[]> {
   const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
     q,
   )}&cx=${cx}&key=${auth}&searchType=image&safe=high`

@@ -23,7 +23,7 @@ interface response {
   ]
 }
 
-async function completions(key: string, prompt: string) {
+export async function completions(key: string, prompt: string) {
   const url = `https://api.openai.com/v1/chat/completions`
   const request: request = {
     model: 'gpt-4',

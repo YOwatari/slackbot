@@ -1,6 +1,6 @@
 import { Context } from "hono";
 
-export async function choice(ctx: Context, client: slackRESTClient, channel: string, text: string) {
+export async function choice(ctx: Context, client: SlackRESTClient, channel: string, text: string) {
   const choices = text.split(/\s/)
   const choice = choices[Math.floor(Math.random() * choices.length)]
   await client.chat.postMessage({
@@ -8,4 +8,3 @@ export async function choice(ctx: Context, client: slackRESTClient, channel: str
     text: `${choice} を選んであげたパカ`
   })
 }
-

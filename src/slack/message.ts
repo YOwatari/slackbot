@@ -3,7 +3,7 @@ import { choice } from './command/choice'
 import { jpi } from './command/jpi'
 import { chat } from './command/chat'
 
-type MessageCommandHandler = (ctx: Context, client: slackRESTClient, channel: string, match: string) => Promise<void>
+type MessageCommandHandler = (ctx: Context, client: SlackRESTClient, channel: string, match: string) => Promise<void>
 
 interface MessageCommand {
   regexp: RegExp
@@ -23,7 +23,7 @@ const messageCommands: MessageCommand[] = [
     isMention: false,
   },
   {
-    regexp: /^chat\s(.*)/,
+    regexp: /^!chat\s(.*)/,
     handler: chat,
     isMention: false,
   },
@@ -37,39 +37,40 @@ type messageEvent = {
 const slackLink = /<(?<type>[@#!])?(?<link>[^>|]+)(?:\|(?<label>[^>]+))?>/
 
 // https://api.slack.com/events/message
-export const messageEventHandler = async (ctx: Context, client: slackRESTClient, body: any) => {
+export const messageEventHandler = async (ctx: Context, client: SlackRESTClient, body: any) => {
   const event: messageEvent = body.event
 
   try {
     const text = event?.text
     const channel = event?.channel
 
-    // ignore bot message
     if (event?.subtype == 'bot_message') {
+      // ignore bot message
       return ctx.json({ ok: true })
     }
 
     for (const command of messageCommands) {
-      if (command.isMention) {
-        // ignore not direct mention message
-        const matches = slackLink.exec(text.trim())
-        if (
-          matches === null ||
-          matches.index !== 0 ||
-          matches.groups === undefined ||
-          matches.groups.type !== '@' ||
-          matches.groups.link !== ctx.get('SLACK_BOT_ID')
-        ) {
-          return ctx.json({ ok: true })
-        }
-      }
-
       const match = text.match(command.regexp)
       if (match && match[1]) {
+        if (command.isMention) {
+          const matches = slackLink.exec(text.trim())
+          if (
+            matches === null ||
+            matches.index !== 0 ||
+            matches.groups === undefined ||
+            matches.groups.type !== '@' ||
+            matches.groups.link !== ctx.get('SLACK_BOT_USER_ID')
+          ) {
+            // ignore not direct mention message
+            return ctx.json({ ok: true })
+          }
+        }
+
         await command.handler(ctx, client, channel, match[1])
       }
     }
   } catch (e: unknown) {
+    console.log(`${e}`)
     ctx.status(500)
     if (e instanceof Error) {
       return ctx.json({ ok: false, message: e.message })

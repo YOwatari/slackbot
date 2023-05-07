@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "wrangler dev src/index.ts",
     "deploy": "wrangler publish --minify src/index.ts",
+    "tail": "wrangler tail",
     "lint:prettier": "prettier --check src/**/**.ts",
     "fix:prettier": "prettier --write src/**/**.ts"
   },

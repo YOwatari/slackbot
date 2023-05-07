@@ -1,7 +1,8 @@
 import { Context } from "hono";
+import { images } from "../../google/images";
 
-export async function jpi(ctx: Context, client: slackRESTClient, channel: string, query: string) {
-  const urls = await images(query, ctx.get("GOOGLE_API_KEY"), ctx.get("GOOGLE_CUSTOM_SEARCH_ENGINE_ID"));
+export async function jpi(ctx: Context, client: SlackRESTClient, channel: string, query: string) {
+  const urls = await images(query, ctx.env.GOOGLE_API_KEY, ctx.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID);
 
   if (urls.length === 0) {
     await client.chat.postMessage({
@@ -9,10 +10,10 @@ export async function jpi(ctx: Context, client: slackRESTClient, channel: string
       text: "そんな画像はないパカ"
     });
   } else {
-    await client.chat.postMessage({
+    const result = await client.chat.postMessage({
       channel: channel,
       text: query,
-      blocks: [
+      blocks: JSON.stringify([
         {
           type: "image",
           title: {
@@ -22,7 +23,7 @@ export async function jpi(ctx: Context, client: slackRESTClient, channel: string
           image_url: urls[Math.floor(Math.random() * urls.length)],
           alt_text: query
         }
-      ],
+      ]),
       link_names: false
     });
   }

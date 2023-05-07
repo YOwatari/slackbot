@@ -2,8 +2,6 @@ import { Hono } from 'hono'
 import { logger } from 'hono/logger'
 import { slackSetupMiddleware, slackVerifierMiddleware } from './slack/middleware'
 import { slackEventHandler } from './slack/handler'
-import { googleSetupMiddleware } from './google/middleware'
-import { openaiSetupMiddleware } from './openai/middleware'
 
 type Bindings = {
   SLACK_SIGNING_SECRET: string
@@ -21,8 +19,6 @@ app.get('/', (c) => {
 
 app.use('/slack/*', slackSetupMiddleware())
 app.use('/slack/*', slackVerifierMiddleware())
-app.use('/slack/*', googleSetupMiddleware())
-app.use('/slack/*', openaiSetupMiddleware())
 app.post('/slack/events', slackEventHandler)
 
 app.notFound((c) => {
