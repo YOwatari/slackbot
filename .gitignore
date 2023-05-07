@@ -104,4 +104,5 @@ dist
 # TernJS port file
 .tern-port
 
-slackbot.cid
+.dev.vars
+

@@ -1,44 +1,25 @@
 {
   "name": "slackbot",
-  "version": "2023.4.1",
-  "description": "",
-  "type": "module",
-  "source": "./src/index.ts",
-  "exports": {
-    "import": "./dist/index.js",
-    "default": "./dist/index.js"
-  },
+  "version": "2023.5.1",
+  "description": "slackbot for me",
   "scripts": {
-    "dev": "node --loader ts-node/esm --require dotenv/config ./src/index.ts",
-    "start": "node dist/index.js",
-    "build": "npx tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint:prettier": "prettier --check src/**.ts",
-    "fix:prettier": "prettier --write src/**.ts"
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler publish --minify src/index.ts",
+    "tail": "wrangler tail",
+    "lint:prettier": "prettier --check src/**/**.ts",
+    "fix:prettier": "prettier --write src/**/**.ts"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/YOwatari/slackbot.git"
-  },
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/YOwatari/slackbot/issues"
-  },
-  "homepage": "https://github.com/YOwatari/slackbot#readme",
   "dependencies": {
-    "@slack/bolt": "^3.12.2",
-    "chatgpt": "^5.2.2",
-    "dotenv": "^10.0.0",
-    "googleapis": "^89.0.0",
-    "p-timeout": "^6.1.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^4.9.4"
+    "@sagi.io/workers-slack": "^0.0.55",
+    "@slack/bolt": "^3.13.1",
+    "hono": "^3.1.8",
+    "p-timeout": "^6.1.1"
   },
   "devDependencies": {
-    "@types/node": "^16.11.6",
+    "@cloudflare/workers-types": "^4.20221111.1",
     "prettier": "2.8.1",
-    "source-map-support": "^0.5.20"
+    "typescript": "^5.0.4",
+    "wrangler": "^2.7.1"
   },
   "engines": {
     "node": ">=18.3"

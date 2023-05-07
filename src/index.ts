@@ -1,23 +1,33 @@
-import slack from '@slack/bolt'
-const { App } = slack
+import { Hono } from 'hono'
+import { logger } from 'hono/logger'
+import { slackSetupMiddleware, slackVerifierMiddleware } from './slack/middleware'
+import { slackEventHandler } from './slack/handler'
 
-import { listen as jpi } from './message/jpi.js'
-import { listen as erande } from './message/erande.js'
-import { listen as chat} from './message/chat.js'
-import * as process from "process";
+type Bindings = {
+  SLACK_SIGNING_SECRET: string
+}
 
-const app = new App({
-  token: process.env['SLACK_BOT_TOKEN'],
-  signingSecret: process.env['SLACK_SIGNING_SECRET'],
-  socketMode: true,
-  appToken: process.env['SLACK_APP_TOKEN'],
+const app = new Hono<{ Bindings: Bindings }>()
+
+app.use('*', logger())
+
+app.get('/', (c) => {
+  return c.json({
+    message: 'Here is slackbot. <https://github.com/YOwatari/slackbot>',
+  })
 })
 
-;(async () => {
-  jpi(app, process.env['GOOGLE_API_KEY'], process.env['GOOGLE_CUSTOM_SEARCH_ENGINE_ID'])
-  erande(app)
-  chat(app, process.env['OPENAI_API_KEY'] || '')
+app.use('/slack/*', slackSetupMiddleware())
+app.use('/slack/*', slackVerifierMiddleware())
+app.post('/slack/events', slackEventHandler)
 
-  await app.start(Number(process.env['PORT']) || 3000)
-  console.log('Bolt app is running')
-})()
+app.notFound((c) => {
+  return c.json({ message: 'Not Found', status: 404 })
+})
+
+app.onError((e, c) => {
+  console.error(`${e}`)
+  return c.json({ message: 'Internal Server Error', status: 500 })
+})
+
+export default app
