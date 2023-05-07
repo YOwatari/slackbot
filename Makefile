@@ -1,6 +1,6 @@
-.PHONY: build dev lint fix
+.PHONY: build dev tail lint fix
 
-deploy dev:
+deploy dev tail:
 	npm run $@
 
 lint fix:
