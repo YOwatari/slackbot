@@ -1,33 +1,24 @@
-import { Hono } from 'hono'
-import { logger } from 'hono/logger'
-import { slackSetupMiddleware, slackVerifierMiddleware } from './slack/middleware'
-import { slackEventHandler } from './slack/handler'
+import { ExecutionContext, SlackApp, SlackEdgeAppEnv } from "slack-cloudflare-workers";
+import { erande } from "./slack/erande";
+import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
+import { jpi } from "./slack/jpi";
+import { OpenAI, OpenAIEnv } from "./openai/completions";
+import { chat } from "./slack/chat";
 
-type Bindings = {
-  SLACK_SIGNING_SECRET: string
+export default {
+  async fetch(
+    request: Request,
+    env: SlackEdgeAppEnv & GoogleImageEnv & OpenAIEnv,
+    ctx: ExecutionContext,
+    ): Promise<Response> {
+    const app = new SlackApp({env})
+    const googleImage = new GoogleImageSearch(env)
+    const openai = new OpenAI(env)
+
+    erande(app)
+    jpi(app, googleImage)
+    chat(app, openai)
+
+    return await app.run(request, ctx)
+  }
 }
-
-const app = new Hono<{ Bindings: Bindings }>()
-
-app.use('*', logger())
-
-app.get('/', (c) => {
-  return c.json({
-    message: 'Here is slackbot. <https://github.com/YOwatari/slackbot>',
-  })
-})
-
-app.use('/slack/*', slackSetupMiddleware())
-app.use('/slack/*', slackVerifierMiddleware())
-app.post('/slack/events', slackEventHandler)
-
-app.notFound((c) => {
-  return c.json({ message: 'Not Found', status: 404 })
-})
-
-app.onError((e, c) => {
-  console.error(`${e}`)
-  return c.json({ message: 'Internal Server Error', status: 500 })
-})
-
-export default app
