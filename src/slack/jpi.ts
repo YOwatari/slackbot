@@ -1,10 +1,11 @@
 import { SlackApp, SlackEdgeAppEnv } from 'slack-cloudflare-workers'
 import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
+import { NoBotMessage } from "./util";
 
 export function jpi(app: SlackApp<SlackEdgeAppEnv>, search: GoogleImageSearch<GoogleImageEnv>) {
   let pattern = /^!jpi\s(.*)/
   app.message(pattern, async ({ context, payload }) => {
-    if (payload.subtype === undefined) {
+    if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
         const urls = await search.image_urls(match[1])
