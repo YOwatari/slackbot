@@ -1,6 +1,6 @@
 {
   "name": "slackbot",
-  "version": "2023.5.2",
+  "version": "2023.7.1",
   "description": "slackbot for me",
   "scripts": {
     "dev": "wrangler dev src/index.ts",
@@ -10,9 +10,7 @@
     "fix:prettier": "prettier --write src/**/**.ts"
   },
   "dependencies": {
-    "@sagi.io/workers-slack": "^0.0.55",
-    "@slack/bolt": "^3.13.1",
-    "hono": "^3.1.8"
+    "slack-cloudflare-workers": "^0.5.2"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20221111.1",
