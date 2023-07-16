@@ -1,13 +1,12 @@
 interface request {
   model: string
-  messages: [
-    {
+  messages: {
       role: string
       content: string
-    },
-  ]
+  }[]
   temperature?: number
   top_p?: number
+  max_tokens: number
   presence_penalty?: number
 }
 
@@ -40,12 +39,17 @@ export class OpenAI<E extends OpenAIEnv> {
       model: 'gpt-3.5-turbo',
       messages: [
         {
+          role: 'system',
+          content: 'あなたはチャットボットです。短い返答が望ましいです。また、特に指示が無い場合は日本語で応答してください',
+        },
+        {
           role: 'user',
           content: prompt,
         },
       ],
       temperature: 0.8,
       top_p: 1.0,
+      max_tokens: 300,
       presence_penalty: 1.0,
     }
     const response = await fetch(url, {

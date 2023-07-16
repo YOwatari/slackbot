@@ -1,6 +1,6 @@
 {
   "name": "slackbot",
-  "version": "2023.7.3",
+  "version": "2023.7.4",
   "description": "slackbot for me",
   "scripts": {
     "dev": "wrangler dev src/index.ts",
