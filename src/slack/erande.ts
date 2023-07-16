@@ -1,9 +1,10 @@
 import { SlackApp, SlackEdgeAppEnv } from 'slack-cloudflare-workers'
+import { DirectMention, NoBotMessage } from './util'
 
 export function erande(app: SlackApp<SlackEdgeAppEnv>) {
   let pattern = /選んで\s(.+)/
   app.message(pattern, async ({ context, payload }) => {
-    if (payload.subtype === undefined) {
+    if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
         const items = match[1].split(/\s/)
