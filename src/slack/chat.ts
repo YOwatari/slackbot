@@ -1,8 +1,8 @@
-import { SlackApp, SlackEdgeAppEnv } from 'slack-cloudflare-workers'
+import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
 import { OpenAI, OpenAIEnv } from '../openai/completions'
-import { NoBotMessage } from "./util";
+import { NoBotMessage } from './util'
 
-export function chat(app: SlackApp<SlackEdgeAppEnv>, openai: OpenAI<OpenAIEnv>) {
+export function chat(app: SlackApp<any> | SlackOAuthApp<any>, openai: OpenAI<OpenAIEnv>) {
   let pattern = /^!chat\s(.*)/
   app.message(pattern, async ({ context, payload }) => {
     if (NoBotMessage(payload)) {

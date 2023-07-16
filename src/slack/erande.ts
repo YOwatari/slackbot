@@ -1,7 +1,7 @@
-import { SlackApp, SlackEdgeAppEnv } from 'slack-cloudflare-workers'
+import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
 import { DirectMention, NoBotMessage } from './util'
 
-export function erande(app: SlackApp<SlackEdgeAppEnv>) {
+export function erande(app: SlackApp<any> | SlackOAuthApp<any>) {
   let pattern = /選んで\s(.+)/
   app.message(pattern, async ({ context, payload }) => {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {

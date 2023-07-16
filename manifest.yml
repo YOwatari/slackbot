@@ -1,23 +1,27 @@
-_metadata:
-  major_version: 1
-  minor_version: 1
 display_information:
-  name: SunriseBot
+  name: ｼﾞｪﾈﾘｯｸjpi
+  description: https://github.com/YOwatari/slackbot
 features:
   bot_user:
-    display_name: SunriseBot
-    always_online: false
+    display_name: jpi
+    always_online: true
 oauth_config:
+  redirect_urls:
+    - https://slackbot.yowatari.workers.dev/slack/oauth_redirect
+    - https://slackbot.yowatari.workers.dev/slack/login/callback
   scopes:
     bot:
       - chat:write
+      - chat:write.public
       - channels:history
 settings:
   event_subscriptions:
+    request_url: https://slackbot.yowatari.workers.dev/slack/events
     bot_events:
       - message.channels
   interactivity:
     is_enabled: true
+    request_url: https://slackbot.yowatari.workers.dev/slack/events
   org_deploy_enabled: false
-  socket_mode_enabled: true
+  socket_mode_enabled: false
   token_rotation_enabled: false
