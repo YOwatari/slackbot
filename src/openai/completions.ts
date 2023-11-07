@@ -1,8 +1,8 @@
 interface request {
   model: string
   messages: {
-      role: string
-      content: string
+    role: string
+    content: string
   }[]
   temperature?: number
   top_p?: number
@@ -36,11 +36,12 @@ export class OpenAI<E extends OpenAIEnv> {
   async completions(prompt: string): Promise<string> {
     const url = `https://api.openai.com/v1/chat/completions`
     const request: request = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4-1106-preview',
       messages: [
         {
           role: 'system',
-          content: 'あなたはチャットボットです。短い返答が望ましいです。また、特に指示が無い場合は日本語で応答してください',
+          content:
+            'あなたはチャットボットです。短い返答が望ましいです。また、特に指示が無い場合は日本語で応答してください',
         },
         {
           role: 'user',
