@@ -36,7 +36,7 @@ export class OpenAI<E extends OpenAIEnv> {
   async completions(prompt: string): Promise<string> {
     const url = `https://api.openai.com/v1/chat/completions`
     const request: request = {
-      model: 'gpt-4-1106-preview',
+      model: 'gpt-4-turbo-preview',
       messages: [
         {
           role: 'system',
