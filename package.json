@@ -1,10 +1,10 @@
 {
     "name": "slackbot",
-    "version": "2024.2.1",
+    "version": "2024.2.2",
     "description": "slackbot for me",
     "scripts": {
         "dev": "wrangler dev src/index.ts",
-        "deploy": "wrangler publish --minify src/index.ts",
+        "deploy": "wrangler deploy --minify src/index.ts",
         "tail": "wrangler tail",
         "lint:prettier": "prettier --check src/**/**.ts",
         "fix:prettier": "prettier --write src/**/**.ts"
