@@ -11,6 +11,7 @@
     ],
     "types": [
       "@cloudflare/workers-types",
+      "jest",
       "node"
     ],
     "jsx": "react-jsx",
