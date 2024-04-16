@@ -1,6 +1,8 @@
 import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
+import { JSXSlack } from 'jsx-slack'
 import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
 import { NoBotMessage } from './util'
+import { jpiBlocks } from './views/jpi'
 
 export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImageSearch<GoogleImageEnv>) {
   let pattern = /^!jpi\s(.*)/
@@ -16,17 +18,7 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
         } else {
           await context.say({
             text: match[1],
-            blocks: [
-              {
-                type: 'image',
-                title: {
-                  type: 'plain_text',
-                  text: match[1],
-                },
-                image_url: urls[Math.floor(Math.random() * urls.length)],
-                alt_text: match[1],
-              },
-            ],
+            blocks: JSXSlack(jpiBlocks({ text: match[1], url: urls[Math.floor(Math.random() * urls.length)] })),
             link_names: false,
           })
         }
