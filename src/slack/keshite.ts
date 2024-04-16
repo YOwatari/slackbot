@@ -1,10 +1,10 @@
 import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
-import { NoBotMessage } from './util'
+import { DirectMention, NoBotMessage } from './util'
 
-export function del(app: SlackApp<any> | SlackOAuthApp<any>) {
-  const pattern = /^!del\s(.*)/
+export function keshite(app: SlackApp<any> | SlackOAuthApp<any>) {
+  const pattern = /消して\s(.+)/
   app.message(pattern, async ({ context, payload }) => {
-    if (NoBotMessage(payload)) {
+    if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
         await context.client.chat.delete({

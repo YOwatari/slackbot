@@ -1,4 +1,4 @@
-import { parse } from "../del"
+import { parse } from "../keshite"
 
 type parseTestCase = {
     should: string
