@@ -4,6 +4,7 @@ import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
 import { jpi } from "./slack/jpi";
 import { OpenAI, OpenAIEnv } from "./openai/completions";
 import { chat } from "./slack/chat";
+import { keshite } from "./slack/keshite";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
   SLACK_INSTALLATIONS: KV,
@@ -30,6 +31,7 @@ export default {
     const googleImage = new GoogleImageSearch(env)
     const openai = new OpenAI(env)
 
+    keshite(app)
     erande(app)
     jpi(app, googleImage)
     chat(app, openai)
