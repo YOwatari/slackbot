@@ -10,15 +10,16 @@
         "fix:prettier": "prettier --write src/**/**.ts"
     },
     "dependencies": {
-        "slack-cloudflare-workers": "^0.5.2",
-        "semver": ">=7.5.2"
+        "jsx-slack": "^6.1.1",
+        "semver": ">=7.5.2",
+        "slack-cloudflare-workers": "^0.5.2"
     },
     "devDependencies": {
         "@cloudflare/workers-types": "^4.20221111.1",
         "prettier": "2.8.1",
+        "semver": ">=7.5.2",
         "typescript": "^5.0.4",
-        "wrangler": "^3.2.0",
-        "semver": ">=7.5.2"
+        "wrangler": "^3.2.0"
     },
     "engines": {
         "node": ">=18.3"
