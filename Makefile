@@ -3,5 +3,8 @@
 deploy dev tail:
 	npm run $@
 
+test:
+	npm $@
+
 lint fix:
 	npm run $@:prettier

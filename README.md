@@ -6,6 +6,8 @@
   * The bot interacts with an AI model from OpenAI, using `{prompt}` as the input. The response from the AI model is then posted in the chat.
 * `@jpi 選んで {item1} {item2} {item3} ...`
   * The bot randomly selects one item from a list provided by the user. The list of items should follow the `選んで` command and be separated by spaces.
+* `@jpi 消して https://...slack.com/archives/.../....`
+  * The bot deletes the specified message from the Slack channel. The user needs to provide the full URL of the message they want to delete.
 
 ## install to your workspace
 
