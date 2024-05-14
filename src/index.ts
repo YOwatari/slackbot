@@ -5,6 +5,7 @@ import { jpi } from "./slack/jpi";
 import { OpenAI, OpenAIEnv } from "./openai/completions";
 import { chat } from "./slack/chat";
 import { keshite } from "./slack/keshite";
+import { ping } from "./slack/ping";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
   SLACK_INSTALLATIONS: KV,
@@ -35,6 +36,7 @@ export default {
     erande(app)
     jpi(app, googleImage)
     chat(app, openai)
+    ping(app)
 
     return await app.run(request, ctx)
   }
