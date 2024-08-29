@@ -12,6 +12,7 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
       if (match && match[1]) {
         // Perform the image search and message posting asynchronously
         console.log('match:', match);
+        
         context.waitUntil((async () => {
           try {
             const urls = await search.image_urls(match[1])
