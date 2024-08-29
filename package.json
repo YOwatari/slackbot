@@ -16,7 +16,7 @@
         "slack-cloudflare-workers": "^1.0.0"
     },
     "devDependencies": {
-        "@cloudflare/workers-types": "^4.20221111.1",
+        "@cloudflare/workers-types": "^4.20240821.1",
         "@types/jest": "^29.5.12",
         "jest": "^29.7.0",
         "prettier": "2.8.1",
