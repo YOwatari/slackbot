@@ -36,5 +36,5 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
         }
       }
     }
-  })
+  });
 }
