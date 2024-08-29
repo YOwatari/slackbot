@@ -6,7 +6,7 @@ import { jpiBlocks } from './views/jpi'
 
 export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImageSearch<GoogleImageEnv>) {
   let pattern = /^!jpi\s(.*)/
-  app.message(pattern, ({ context, payload }) => {
+  app.message(pattern, async ({ context, payload }) => {
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {

@@ -3,7 +3,7 @@ import { DirectMention, NoBotMessage } from './util'
 
 export function erande(app: SlackApp<any> | SlackOAuthApp<any>) {
   let pattern = /選んで\s(.+)/
-  app.message(pattern, ({ context, payload }) => {
+  app.message(pattern, async ({ context, payload }) => {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
