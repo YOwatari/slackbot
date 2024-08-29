@@ -9,10 +9,7 @@ export function keshite(app: SlackApp<any> | SlackOAuthApp<any>) {
       if (match && match[1]) {
         const parsed = parse(match[1])
         if (parsed) {
-          // Perform the message deletion asynchronously
-          (async () => {
-            await context.client.chat.delete(parsed)
-          })()
+          await context.client.chat.delete(parsed)
         }
       }
     }

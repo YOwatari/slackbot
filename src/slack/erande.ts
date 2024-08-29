@@ -7,14 +7,11 @@ export function erande(app: SlackApp<any> | SlackOAuthApp<any>) {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
-        // Perform the choice selection and message posting asynchronously
-        (async () => {
-          const items = match[1].split(/\s/)
-          const choice = items[Math.floor(Math.random() * items.length)]
-          await context.say({
-            text: `${choice} を選んであげたパカ`,
-          })
-        })()
+        const items = match[1].split(/\s/)
+        const choice = items[Math.floor(Math.random() * items.length)]
+        await context.say({
+          text: `${choice} を選んであげたパカ`,
+        })
       }
     }
   })

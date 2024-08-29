@@ -8,13 +8,10 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, openai: OpenAI<Ope
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
-        // Perform the message posting asynchronously
-        (async () => {
-          const message = await openai.completions(match[1])
-          await context.say({
-            text: `>${match[1]}\n${message}`,
-          })
-        })()
+        const message = await openai.completions(match[1])
+        await context.say({
+          text: `>${match[1]}\n${message}`,
+        })
       }
     }
   })
