@@ -27,9 +27,6 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
             }
           } catch (error) {
             console.error('Error during image search or message posting:', error)
-            await context.say({
-              text: 'エラーが発生しました。もう一度試してください。',
-            })
           }
         })()
       }
