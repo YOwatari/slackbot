@@ -8,6 +8,8 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, openai: OpenAI<Ope
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
+        console.log('chat: ', match[1])
+
         const message = await openai.completions(match[1])
         await context.say({
           text: `>${match[1]}\n${message}`,
