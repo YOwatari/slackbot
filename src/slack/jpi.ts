@@ -6,14 +6,14 @@ import { jpiBlocks } from './views/jpi'
 
 export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImageSearch<GoogleImageEnv>) {
   let pattern = /^!jpi\s(.*)/
-  app.message(pattern, async ({ context, payload }) => {
+  app.message(pattern, async ({ context, payload, event }) => {
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
         // Perform the image search and message posting asynchronously
         console.log('match:', match);
         
-        context.waitUntil((async () => {
+        event.waitUntil((async () => {
           try {
             const urls = await search.image_urls(match[1])
             if (urls.length === 0) {
