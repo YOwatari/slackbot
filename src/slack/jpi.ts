@@ -33,7 +33,6 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
         }
 
         console.log('Image search and message posting completed')
-        }
       }
     }
   });
