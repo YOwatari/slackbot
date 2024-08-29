@@ -7,6 +7,8 @@ export function keshite(app: SlackApp<any> | SlackOAuthApp<any>) {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
+        console.log('keshite: ', match[1])
+
         const parsed = parse(match[1])
         if (parsed) {
           await context.client.chat.delete(parsed)

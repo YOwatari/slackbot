@@ -7,6 +7,8 @@ export function erande(app: SlackApp<any> | SlackOAuthApp<any>) {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
+        console.log('erande: ', match[1])
+
         const items = match[1].split(/\s/)
         const choice = items[Math.floor(Math.random() * items.length)]
         await context.say({

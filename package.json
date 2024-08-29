@@ -1,11 +1,11 @@
 {
     "name": "slackbot",
-    "version": "2024.5.3",
+    "version": "2024.8.1",
     "description": "slackbot for me",
     "scripts": {
         "dev": "wrangler dev src/index.ts",
         "deploy": "wrangler deploy --minify src/index.ts",
-        "tail": "wrangler tail",
+        "tail": "wrangler tail | jq '. | select(.event.response.status != 404)'",
         "test": "jest",
         "lint:prettier": "prettier --check src/**/**.ts",
         "fix:prettier": "prettier --write src/**/**.ts"
@@ -13,10 +13,10 @@
     "dependencies": {
         "jsx-slack": "^6.1.1",
         "semver": ">=7.5.2",
-        "slack-cloudflare-workers": "^0.5.2"
+        "slack-cloudflare-workers": "^1.0.0"
     },
     "devDependencies": {
-        "@cloudflare/workers-types": "^4.20221111.1",
+        "@cloudflare/workers-types": "^4.20240821.1",
         "@types/jest": "^29.5.12",
         "jest": "^29.7.0",
         "prettier": "2.8.1",

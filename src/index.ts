@@ -1,4 +1,5 @@
-import { defaultOpenIDConnectCallback, ExecutionContext, KV, KVInstallationStore, KVStateStore, SlackOAuthAndOIDCEnv, SlackOAuthApp } from "slack-cloudflare-workers";
+import { defaultOpenIDConnectCallback, ExecutionContext, KVInstallationStore, KVStateStore, SlackOAuthAndOIDCEnv, SlackOAuthApp } from "slack-cloudflare-workers";
+import { KVNamespace } from "@cloudflare/workers-types";
 import { erande } from "./slack/erande";
 import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
 import { jpi } from "./slack/jpi";
@@ -8,8 +9,8 @@ import { keshite } from "./slack/keshite";
 import { ping } from "./slack/ping";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
-  SLACK_INSTALLATIONS: KV,
-  SLACK_OAUTH_STATES: KV,
+  SLACK_INSTALLATIONS: KVNamespace,
+  SLACK_OAUTH_STATES: KVNamespace,
 }
 
 export default {
@@ -23,9 +24,9 @@ export default {
       installationStore: new KVInstallationStore(env, env.SLACK_INSTALLATIONS),
       stateStore: new KVStateStore(env.SLACK_OAUTH_STATES),
       oidc: {
-        callback: async (token, req) => {
-          const handler = defaultOpenIDConnectCallback(env)
-          return await handler(token, req)
+        callback: async (args) => {
+          const handler = defaultOpenIDConnectCallback;
+          return await handler(args);
         },
       },
     })

@@ -10,6 +10,8 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
+        console.log('jpi:', match[1])
+
         const urls = await search.image_urls(match[1])
         if (urls.length === 0) {
           await context.say({
