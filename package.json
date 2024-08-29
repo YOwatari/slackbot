@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "wrangler dev src/index.ts",
         "deploy": "wrangler deploy --minify src/index.ts",
-        "tail": "wrangler tail",
+        "tail": "wrangler tail | jq '. | select(.event.response.status != 200)'",
         "test": "jest",
         "lint:prettier": "prettier --check src/**/**.ts",
         "fix:prettier": "prettier --write src/**/**.ts"
