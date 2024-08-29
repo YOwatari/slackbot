@@ -12,16 +12,23 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImage
       if (match && match[1]) {
         // Perform the image search and message posting asynchronously
         (async () => {
-          const urls = await search.image_urls(match[1])
-          if (urls.length === 0) {
+          try {
+            const urls = await search.image_urls(match[1])
+            if (urls.length === 0) {
+              await context.say({
+                text: 'そんな画像はないパカ',
+              })
+            } else {
+              await context.say({
+                text: match[1],
+                blocks: JSXSlack(jpiBlocks({ text: match[1], url: urls[Math.floor(Math.random() * urls.length)] })),
+                link_names: false,
+              })
+            }
+          } catch (error) {
+            console.error('Error during image search or message posting:', error)
             await context.say({
-              text: 'そんな画像はないパカ',
-            })
-          } else {
-            await context.say({
-              text: match[1],
-              blocks: JSXSlack(jpiBlocks({ text: match[1], url: urls[Math.floor(Math.random() * urls.length)] })),
-              link_names: false,
+              text: 'エラーが発生しました。もう一度試してください。',
             })
           }
         })()
