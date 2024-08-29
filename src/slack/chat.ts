@@ -4,14 +4,17 @@ import { NoBotMessage } from './util'
 
 export function chat(app: SlackApp<any> | SlackOAuthApp<any>, openai: OpenAI<OpenAIEnv>) {
   let pattern = /^!chat\s(.*)/
-  app.message(pattern, async ({ context, payload }) => {
+  app.message(pattern, ({ context, payload }) => {
     if (NoBotMessage(payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
-        const message = await openai.completions(match[1])
-        await context.say({
-          text: `>${match[1]}\n${message}`,
-        })
+        // Perform the message posting asynchronously
+        (async () => {
+          const message = await openai.completions(match[1])
+          await context.say({
+            text: `>${match[1]}\n${message}`,
+          })
+        })()
       }
     }
   })

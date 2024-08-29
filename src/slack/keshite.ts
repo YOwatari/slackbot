@@ -3,13 +3,16 @@ import { DirectMention, NoBotMessage } from './util'
 
 export function keshite(app: SlackApp<any> | SlackOAuthApp<any>) {
   const pattern = /消して\s(.+)/
-  app.message(pattern, async ({ context, payload }) => {
+  app.message(pattern, ({ context, payload }) => {
     if (NoBotMessage(payload) && DirectMention(context, payload)) {
       const match = payload.text.match(pattern)
       if (match && match[1]) {
         const parsed = parse(match[1])
         if (parsed) {
-          await context.client.chat.delete(parsed)
+          // Perform the message deletion asynchronously
+          (async () => {
+            await context.client.chat.delete(parsed)
+          })()
         }
       }
     }
