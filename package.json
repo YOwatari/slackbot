@@ -1,11 +1,11 @@
 {
     "name": "slackbot",
-    "version": "2024.8.1",
+    "version": "2024.8.2",
     "description": "slackbot for me",
     "scripts": {
         "dev": "wrangler dev src/index.ts",
         "deploy": "wrangler deploy --minify src/index.ts",
-        "tail": "wrangler tail | jq '. | select(.event.response.status != 404)'",
+        "tail": "wrangler tail",
         "test": "jest",
         "lint:prettier": "prettier --check src/**/**.ts",
         "fix:prettier": "prettier --write src/**/**.ts"
