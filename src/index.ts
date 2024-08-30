@@ -39,7 +39,7 @@ export default {
     chat(app, openai)
     ping(app)
 
-    app.anyMessage(async () => {});
+    app.event("message", async({}) => {})
     return await app.run(request, ctx)
   }
 }
