@@ -9,6 +9,11 @@ export type GoogleImageEnv = {
   GOOGLE_CUSTOM_SEARCH_ENGINE_ID?: string
 }
 
+// Hosts whose image URLs have historically broken the Slack post path
+// (hot-link restrictions, dead thumbnails). Inherited from the bot's earliest
+// revisions; the original incidents weren't documented. Before removing an
+// entry, verify that `!jpi` still posts successfully when CSE returns URLs
+// from that host — Slack rejects the entire block on image fetch failure.
 const BLOCKED_HOST_PATTERN = /(^|\.)(?:ameblo\.jp|ameba\.jp|fc2\.com)$/
 
 function isBlockedUrl(urlStr: string): boolean {
