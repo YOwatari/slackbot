@@ -10,6 +10,8 @@ import { keshite } from "./slack/keshite";
 import { ping } from "./slack/ping";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
+  JPI_SIGNING_SECRET: string,
+  JPI_IMAGE_ENDPOINT: string,
   SLACK_INSTALLATIONS: KVNamespace,
   SLACK_OAUTH_STATES: KVNamespace,
 }
@@ -24,7 +26,10 @@ export default {
     const googleImage = new GoogleImageSearch(env)
 
     if (url.pathname === "/jpi/img") {
-      return handleJpiImage(request, googleImage)
+      return handleJpiImage(request, {
+        search: googleImage,
+        signingSecret: env.JPI_SIGNING_SECRET,
+      })
     }
 
     const app = new SlackOAuthApp({

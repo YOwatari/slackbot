@@ -1,4 +1,14 @@
 import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
+import { verify } from './signature'
+
+export type JpiImageDeps<E extends GoogleImageEnv> = {
+  search: GoogleImageSearch<E>
+  signingSecret: string
+  fetcher?: typeof fetch
+  random?: () => number
+  now?: () => number
+  maxClockSkewMs?: number
+}
 
 const PLACEHOLDER_SVG = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
@@ -18,14 +28,34 @@ function placeholderResponse(): Response {
 
 export async function handleJpiImage<E extends GoogleImageEnv>(
   request: Request,
-  search: GoogleImageSearch<E>,
-  fetcher: typeof fetch = fetch,
-  random: () => number = Math.random,
+  deps: JpiImageDeps<E>,
 ): Promise<Response> {
+  const {
+    search,
+    signingSecret,
+    fetcher = fetch,
+    random = Math.random,
+    now = () => Date.now(),
+    maxClockSkewMs = 60 * 60 * 1000,
+  } = deps
+
   const url = new URL(request.url)
   const q = url.searchParams.get('q')?.trim() ?? ''
   if (!q) {
     return new Response('missing q', { status: 400 })
+  }
+
+  const t = url.searchParams.get('t') ?? ''
+  const sig = url.searchParams.get('sig') ?? ''
+  if (!t || !sig) {
+    return new Response('missing signature', { status: 401 })
+  }
+  const ts = Number(t)
+  if (!Number.isFinite(ts) || Math.abs(now() - ts) > maxClockSkewMs) {
+    return new Response('expired or invalid t', { status: 401 })
+  }
+  if (!(await verify(signingSecret, `${q}:${t}`, sig))) {
+    return new Response('invalid signature', { status: 401 })
   }
 
   let urls: string[]

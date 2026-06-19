@@ -19,13 +19,9 @@ function hexToBytes(hex: string): Uint8Array | null {
 }
 
 async function importKey(secret: string, usage: 'sign' | 'verify'): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    [usage],
-  )
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+    usage,
+  ])
 }
 
 export async function sign(secret: string, payload: string): Promise<string> {
