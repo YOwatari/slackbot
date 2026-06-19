@@ -1,30 +1,23 @@
 import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
 import { JSXSlack } from 'jsx-slack'
-import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
 import { NoBotMessage } from './util'
 import { jpiBlocks } from './views/jpi'
+import { buildJpiImageUrl, JpiConfig } from '../jpi/url_builder'
 
-export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, search: GoogleImageSearch<GoogleImageEnv>) {
-  let pattern = /^!jpi\s(.*)/
+export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) {
+  const pattern = /^!jpi\s+(.*)/
   app.message(pattern, async ({ context, payload }) => {
-    if (NoBotMessage(payload)) {
-      const match = payload.text.match(pattern)
-      if (match && match[1]) {
-        console.log('jpi:', match[1])
+    if (!NoBotMessage(payload)) return
+    const match = payload.text.match(pattern)
+    if (!match) return
+    const keyword = match[1].trim()
+    if (!keyword) return
 
-        const urls = await search.image_urls(match[1])
-        if (urls.length === 0) {
-          await context.say({
-            text: 'そんな画像はないパカ',
-          })
-        } else {
-          await context.say({
-            text: match[1],
-            blocks: JSXSlack(jpiBlocks({ text: match[1], url: urls[Math.floor(Math.random() * urls.length)] })),
-            link_names: false,
-          })
-        }
-      }
-    }
+    const imageUrl = await buildJpiImageUrl(config, keyword)
+    await context.say({
+      text: keyword,
+      blocks: JSXSlack(jpiBlocks({ text: keyword, url: imageUrl })),
+      link_names: false,
+    })
   })
 }

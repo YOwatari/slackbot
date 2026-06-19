@@ -47,7 +47,10 @@ export default {
 
     keshite(app)
     erande(app)
-    jpi(app, googleImage)
+    jpi(app, {
+      imageEndpoint: env.JPI_IMAGE_ENDPOINT,
+      signingSecret: env.JPI_SIGNING_SECRET,
+    })
     chat(app, openai)
     ping(app)
 
