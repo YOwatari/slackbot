@@ -29,7 +29,7 @@ export default {
       return handleJpiImage(request, {
         search: googleImage,
         signingSecret: env.JPI_SIGNING_SECRET,
-      })
+      }, ctx)
     }
 
     const app = new SlackOAuthApp({

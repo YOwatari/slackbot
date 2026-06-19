@@ -10,17 +10,32 @@ export type JpiImageDeps<E extends GoogleImageEnv> = {
   maxClockSkewMs?: number
 }
 
-const PLACEHOLDER_URL = 'https://placehold.co/400x300/eeeeee/666666.png?text=No+Image'
+// Minimal subset of Cloudflare Workers' ExecutionContext we actually need.
+// Defined locally to avoid pulling slack-edge's ExecutionContext (no
+// passThroughOnException) vs @cloudflare/workers-types' (requires it) into
+// the same function signature.
+type WaitUntilContext = { waitUntil(promise: Promise<unknown>): void }
+
+const PLACEHOLDER_URL = 'https://placehold.co/240x180/eeeeee/666666.png?text=No+Image'
 const UPSTREAM_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+const IMAGE_CACHE_CONTROL = 'public, s-maxage=300, max-age=0'
+const PLACEHOLDER_CACHE_CONTROL = 'public, s-maxage=60, max-age=0'
 
 function placeholderResponse(): Response {
-  return Response.redirect(PLACEHOLDER_URL, 302)
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: PLACEHOLDER_URL,
+      'Cache-Control': PLACEHOLDER_CACHE_CONTROL,
+    },
+  })
 }
 
 export async function handleJpiImage<E extends GoogleImageEnv>(
   request: Request,
   deps: JpiImageDeps<E>,
+  ctx?: WaitUntilContext,
 ): Promise<Response> {
   const {
     search,
@@ -50,6 +65,16 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     return new Response('invalid signature', { status: 401 })
   }
 
+  // Signature verified — safe to use the request URL as a cache key.
+  // Same q+t+sig is identical input, so the response can be reused across
+  // Slack's multi-region image_url prefetches without re-hitting CSE.
+  if (ctx) {
+    const cached = await caches.default.match(request)
+    if (cached) {
+      return cached
+    }
+  }
+
   let urls: string[]
   try {
     urls = await search.image_urls(q)
@@ -63,6 +88,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   }
 
   const picked = urls[Math.floor(random() * urls.length)]
+  let response: Response
   try {
     const imgRes = await fetcher(picked, {
       headers: { 'User-Agent': UPSTREAM_USER_AGENT },
@@ -72,15 +98,20 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
       return placeholderResponse()
     }
     const buf = await imgRes.arrayBuffer()
-    return new Response(buf, {
+    response = new Response(buf, {
       status: 200,
       headers: {
         'Content-Type': imgRes.headers.get('content-type') ?? 'application/octet-stream',
-        'Cache-Control': 'no-store',
+        'Cache-Control': IMAGE_CACHE_CONTROL,
       },
     })
   } catch (e) {
     console.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
     return placeholderResponse()
   }
+
+  if (ctx) {
+    ctx.waitUntil(caches.default.put(request, response.clone()))
+  }
+  return response
 }
