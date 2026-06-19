@@ -22,7 +22,8 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
     const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(q)}&cx=${
       this.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID
     }&key=${this.env.GOOGLE_API_KEY}&searchType=image&safe=high`
-    const res = await this.fetcher(url)
+    const fetcher = this.fetcher
+    const res = await fetcher(url)
     if (!res.ok) {
       const body = await res.text().catch(() => '')
       console.warn('GoogleImageSearch: CSE request failed', {
@@ -33,6 +34,13 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
       return []
     }
     const result = (await res.json()) as result
-    return (result.items ?? []).map((i) => i.link).filter((l): l is string => !!l && !/ameba|fc2|pbs/.test(l))
+    const total = result.items?.length ?? 0
+    const filtered = (result.items ?? [])
+      .map((i) => i.link)
+      .filter((l): l is string => !!l && !/ameba|fc2|pbs/.test(l))
+    if (filtered.length === 0) {
+      console.warn('GoogleImageSearch: no urls after filter', { q, total, filtered: filtered.length })
+    }
+    return filtered
   }
 }

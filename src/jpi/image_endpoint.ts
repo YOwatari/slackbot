@@ -31,7 +31,8 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   let urls: string[]
   try {
     urls = await search.image_urls(q)
-  } catch {
+  } catch (e) {
+    console.warn('handleJpiImage: search threw', { q, error: String(e) })
     return placeholderResponse()
   }
 
@@ -43,6 +44,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   try {
     const imgRes = await fetcher(picked)
     if (!imgRes.ok) {
+      console.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
       return placeholderResponse()
     }
     const buf = await imgRes.arrayBuffer()
@@ -53,7 +55,8 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
         'Cache-Control': 'no-store',
       },
     })
-  } catch {
+  } catch (e) {
+    console.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
     return placeholderResponse()
   }
 }
