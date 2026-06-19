@@ -2,10 +2,10 @@ name = "slackbot"
 main = "src/index.ts"
 compatibility_date = "2023-04-06"
 
-[vars]
-JPI_IMAGE_ENDPOINT = "https://slackbot.yowatari.workers.dev/jpi/img"
-
 kv_namespaces = [
     { binding = "SLACK_INSTALLATIONS", id = "70b49911049e431e80858f3b03afa807", preview_id = "983e5e5ee6634067aa682e209ea0c92d" },
     { binding = "SLACK_OAUTH_STATES", id = "b6951c08e0f64297abb506795d226c27", preview_id = "5820402c1dfd4dd6bd6e4cd81dd90eff" },
 ]
+
+[vars]
+JPI_IMAGE_ENDPOINT = "https://slackbot.yowatari.workers.dev/jpi/img"
