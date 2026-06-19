@@ -81,18 +81,17 @@ describe('handleJpiImage', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns placeholder SVG when search returns empty (signed)', async () => {
+  it('redirects to placeholder when search returns empty (signed)', async () => {
     const res = await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
       now,
     })
-    expect(res.status).toBe(200)
-    expect(res.headers.get('content-type')).toMatch(/image\/svg\+xml/)
-    expect(await res.text()).toContain('そんな画像はないパカ')
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
   })
 
-  it('proxies image bytes when search returns urls (signed)', async () => {
+  it('proxies image bytes with a browser-like User-Agent (signed)', async () => {
     const fetcher = jest.fn().mockResolvedValue(
       new Response('binary', { status: 200, headers: { 'content-type': 'image/png' } }),
     )
@@ -102,7 +101,12 @@ describe('handleJpiImage', () => {
       fetcher: fetcher as unknown as typeof fetch,
       now,
     })
-    expect(fetcher).toHaveBeenCalledWith('https://example.com/a.png')
+    expect(fetcher).toHaveBeenCalledWith(
+      'https://example.com/a.png',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'User-Agent': expect.stringContaining('Mozilla') }),
+      }),
+    )
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toBe('image/png')
     expect(await res.text()).toBe('binary')
@@ -119,10 +123,10 @@ describe('handleJpiImage', () => {
       random: () => 0,
       now,
     })
-    expect(fetcher).toHaveBeenCalledWith('https://example.com/1.jpg')
+    expect(fetcher).toHaveBeenCalledWith('https://example.com/1.jpg', expect.any(Object))
   })
 
-  it('falls back to placeholder when search throws (signed)', async () => {
+  it('falls back to placeholder redirect when search throws (signed)', async () => {
     const res = await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => {
         throw new Error('boom')
@@ -130,11 +134,11 @@ describe('handleJpiImage', () => {
       signingSecret: SECRET,
       now,
     })
-    expect(res.status).toBe(200)
-    expect(res.headers.get('content-type')).toMatch(/image\/svg\+xml/)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
   })
 
-  it('falls back to placeholder when fetcher returns not ok (signed)', async () => {
+  it('falls back to placeholder redirect when fetcher returns not ok (signed)', async () => {
     const fetcher = jest.fn().mockResolvedValue(new Response('', { status: 500 }))
     const res = await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => ['https://example.com/a.png']),
@@ -142,7 +146,7 @@ describe('handleJpiImage', () => {
       fetcher: fetcher as unknown as typeof fetch,
       now,
     })
-    expect(res.status).toBe(200)
-    expect(res.headers.get('content-type')).toMatch(/image\/svg\+xml/)
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
   })
 })

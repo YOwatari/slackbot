@@ -10,20 +10,12 @@ export type JpiImageDeps<E extends GoogleImageEnv> = {
   maxClockSkewMs?: number
 }
 
-const PLACEHOLDER_SVG = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-  <rect width="400" height="300" fill="#eeeeee"/>
-  <text x="200" y="150" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-size="24" fill="#666666">そんな画像はないパカ</text>
-</svg>`
+const PLACEHOLDER_URL = 'https://placehold.co/400x300/eeeeee/666666.png?text=No+Image'
+const UPSTREAM_USER_AGENT =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 
 function placeholderResponse(): Response {
-  return new Response(PLACEHOLDER_SVG, {
-    status: 200,
-    headers: {
-      'Content-Type': 'image/svg+xml; charset=utf-8',
-      'Cache-Control': 'no-store',
-    },
-  })
+  return Response.redirect(PLACEHOLDER_URL, 302)
 }
 
 export async function handleJpiImage<E extends GoogleImageEnv>(
@@ -72,7 +64,9 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
 
   const picked = urls[Math.floor(random() * urls.length)]
   try {
-    const imgRes = await fetcher(picked)
+    const imgRes = await fetcher(picked, {
+      headers: { 'User-Agent': UPSTREAM_USER_AGENT },
+    })
     if (!imgRes.ok) {
       console.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
       return placeholderResponse()
