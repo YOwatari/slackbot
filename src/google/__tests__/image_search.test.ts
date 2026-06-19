@@ -5,7 +5,10 @@ type MockFetcher = jest.MockedFunction<typeof fetch>
 function makeFetcher(body: unknown, ok = true): MockFetcher {
   return jest.fn().mockResolvedValue({
     ok,
+    status: ok ? 200 : 500,
+    statusText: ok ? 'OK' : 'Internal Server Error',
     json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   } as Response)
 }
 

@@ -24,6 +24,12 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
     }&key=${this.env.GOOGLE_API_KEY}&searchType=image&safe=high`
     const res = await this.fetcher(url)
     if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.warn('GoogleImageSearch: CSE request failed', {
+        status: res.status,
+        statusText: res.statusText,
+        body: body.slice(0, 500),
+      })
       return []
     }
     const result = (await res.json()) as result
