@@ -35,16 +35,22 @@ describe('GoogleImageSearch.image_urls', () => {
     expect(await search.image_urls('test')).toEqual([])
   })
 
-  it('filters out ameba, fc2, pbs domains and keeps others', async () => {
+  it('filters out blocked hosts by hostname and keeps others', async () => {
     const fetcher = makeFetcher({
       items: [
         { link: 'https://ameba.jp/img.jpg' },
+        { link: 'https://blog.ameblo.jp/img.jpg' },
         { link: 'https://fc2.com/img.jpg' },
+        { link: 'https://image.fc2.com/img.jpg' },
         { link: 'https://pbs.twimg.com/img.jpg' },
         { link: 'https://example.com/img.jpg' },
+        { link: 'not-a-url' },
       ],
     })
     const search = new GoogleImageSearch(env, fetcher)
-    expect(await search.image_urls('test')).toEqual(['https://example.com/img.jpg'])
+    expect(await search.image_urls('test')).toEqual([
+      'https://pbs.twimg.com/img.jpg',
+      'https://example.com/img.jpg',
+    ])
   })
 })

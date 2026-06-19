@@ -9,6 +9,16 @@ export type GoogleImageEnv = {
   GOOGLE_CUSTOM_SEARCH_ENGINE_ID?: string
 }
 
+const BLOCKED_HOST_PATTERN = /(^|\.)(?:ameblo\.jp|ameba\.jp|fc2\.com)$/
+
+function isBlockedUrl(urlStr: string): boolean {
+  try {
+    return BLOCKED_HOST_PATTERN.test(new URL(urlStr).hostname)
+  } catch {
+    return true
+  }
+}
+
 export class GoogleImageSearch<E extends GoogleImageEnv> {
   public env: E
   private fetcher: typeof fetch
@@ -35,9 +45,7 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
     }
     const result = (await res.json()) as result
     const total = result.items?.length ?? 0
-    const filtered = (result.items ?? [])
-      .map((i) => i.link)
-      .filter((l): l is string => !!l && !/ameba|fc2|pbs/.test(l))
+    const filtered = (result.items ?? []).map((i) => i.link).filter((l): l is string => !!l && !isBlockedUrl(l))
     if (filtered.length === 0) {
       console.warn('GoogleImageSearch: no urls after filter', { q, total, filtered: filtered.length })
     }
