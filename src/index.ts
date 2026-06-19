@@ -2,6 +2,7 @@ import { defaultOpenIDConnectCallback, ExecutionContext, KVInstallationStore, KV
 import { KVNamespace } from "@cloudflare/workers-types";
 import { erande } from "./slack/erande";
 import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
+import { handleJpiImage } from "./jpi/image_endpoint";
 import { jpi } from "./slack/jpi";
 import { OpenAI, OpenAIEnv } from "./openai/completions";
 import { chat } from "./slack/chat";
@@ -32,6 +33,11 @@ export default {
     })
     const googleImage = new GoogleImageSearch(env)
     const openai = new OpenAI(env)
+
+    const url = new URL(request.url)
+    if (url.pathname === "/jpi/img") {
+      return handleJpiImage(request, googleImage)
+    }
 
     keshite(app)
     erande(app)
