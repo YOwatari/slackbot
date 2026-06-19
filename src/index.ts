@@ -20,6 +20,13 @@ export default {
     env: Env,
     ctx: ExecutionContext,
     ): Promise<Response> {
+    const url = new URL(request.url)
+    const googleImage = new GoogleImageSearch(env)
+
+    if (url.pathname === "/jpi/img") {
+      return handleJpiImage(request, googleImage)
+    }
+
     const app = new SlackOAuthApp({
       env,
       installationStore: new KVInstallationStore(env, env.SLACK_INSTALLATIONS),
@@ -31,13 +38,7 @@ export default {
         },
       },
     })
-    const googleImage = new GoogleImageSearch(env)
     const openai = new OpenAI(env)
-
-    const url = new URL(request.url)
-    if (url.pathname === "/jpi/img") {
-      return handleJpiImage(request, googleImage)
-    }
 
     keshite(app)
     erande(app)
