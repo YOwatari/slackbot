@@ -66,8 +66,16 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   }
 
   // Signature verified — safe to use the request URL as a cache key.
-  // Same q+t+sig is identical input, so the response can be reused across
-  // Slack's multi-region image_url prefetches without re-hitting CSE.
+  // Same q+t+sig is identical input, so the response (including placeholders)
+  // can be reused across Slack's multi-region image_url prefetches without
+  // re-hitting CSE.
+  const respond = (r: Response): Response => {
+    if (ctx) {
+      ctx.waitUntil(caches.default.put(request, r.clone()))
+    }
+    return r
+  }
+
   if (ctx) {
     const cached = await caches.default.match(request)
     if (cached) {
@@ -80,38 +88,34 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     urls = await search.image_urls(q)
   } catch (e) {
     console.warn('handleJpiImage: search threw', { q, error: String(e) })
-    return placeholderResponse()
+    return respond(placeholderResponse())
   }
 
   if (urls.length === 0) {
-    return placeholderResponse()
+    return respond(placeholderResponse())
   }
 
   const picked = urls[Math.floor(random() * urls.length)]
-  let response: Response
   try {
     const imgRes = await fetcher(picked, {
       headers: { 'User-Agent': UPSTREAM_USER_AGENT },
     })
     if (!imgRes.ok) {
       console.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
-      return placeholderResponse()
+      return respond(placeholderResponse())
     }
     const buf = await imgRes.arrayBuffer()
-    response = new Response(buf, {
-      status: 200,
-      headers: {
-        'Content-Type': imgRes.headers.get('content-type') ?? 'application/octet-stream',
-        'Cache-Control': IMAGE_CACHE_CONTROL,
-      },
-    })
+    return respond(
+      new Response(buf, {
+        status: 200,
+        headers: {
+          'Content-Type': imgRes.headers.get('content-type') ?? 'application/octet-stream',
+          'Cache-Control': IMAGE_CACHE_CONTROL,
+        },
+      }),
+    )
   } catch (e) {
     console.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
-    return placeholderResponse()
+    return respond(placeholderResponse())
   }
-
-  if (ctx) {
-    ctx.waitUntil(caches.default.put(request, response.clone()))
-  }
-  return response
 }
