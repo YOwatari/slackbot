@@ -144,7 +144,9 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     return respond(placeholderResponse())
   }
 
-  const picked = urls[await pickIndex(urls, `${q}:${t}`)]
+  const rawIdx = await pickIndex(urls, `${q}:${t}`)
+  const safeIdx = Math.max(0, Math.min(urls.length - 1, Math.floor(Number.isFinite(rawIdx) ? rawIdx : 0)))
+  const picked = urls[safeIdx]
   try {
     const imgRes = await fetcher(picked, {
       headers: { 'User-Agent': UPSTREAM_USER_AGENT },

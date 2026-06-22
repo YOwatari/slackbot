@@ -142,6 +142,32 @@ describe('handleJpiImage', () => {
     expect(fetcher).toHaveBeenCalledWith('https://example.com/2.jpg', expect.any(Object))
   })
 
+  it('clamps out-of-range pickIndex return values', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('last', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
+    )
+    await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/1.jpg', 'https://example.com/2.jpg']),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+      pickIndex: () => 99, // out of range
+    })
+    expect(fetcher).toHaveBeenCalledWith('https://example.com/2.jpg', expect.any(Object))
+  })
+
+  it('clamps negative pickIndex return values', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('first', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
+    )
+    await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/1.jpg', 'https://example.com/2.jpg']),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+      pickIndex: () => -5,
+    })
+    expect(fetcher).toHaveBeenCalledWith('https://example.com/1.jpg', expect.any(Object))
+  })
+
   it('picks deterministically from q+t when pickIndex is not injected', async () => {
     const fetcher = jest.fn().mockResolvedValue(
       new Response('x', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
