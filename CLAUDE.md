@@ -58,7 +58,7 @@ export function feature(app: SlackApp<any> | SlackOAuthApp<any>) {
 
 ### External Service Wrappers
 
-- `src/google/image_search.ts` — `GoogleImageSearch` クラス。`ameba|fc2|pbs` ドメインを結果からフィルタするロジックを内蔵。
+- `src/google/image_search.ts` — `GoogleImageSearch` クラス。`ameblo.jp` / `ameba.jp` / `fc2.com` を hostname ベースで除外する block list を内蔵 (`pbs.twimg.com` は許可)。
 - `src/openai/completions.ts` — `OpenAI` クラス。モデルは `gpt-4o-mini` 固定、system prompt とパラメータ (`temperature`, `max_tokens` 等) はハードコード。
 
 それぞれ `xxxEnv` 型を export しており、`index.ts` の `Env` 交差型に組み込む形で環境変数を受け渡す。
