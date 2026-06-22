@@ -241,6 +241,24 @@ describe('handleJpiImage', () => {
     expect(await res.text()).toBe('persisted')
   })
 
+  it('falls through to CSE when R2 object has a disallowed content-type', async () => {
+    const bytes = new TextEncoder().encode('<svg/>').buffer as ArrayBuffer
+    const bucket = makeBucket({ bytes, contentType: 'image/svg+xml' })
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('fresh', { status: 200, headers: { 'content-type': 'image/png' } }),
+    )
+    const res = await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/a.png']),
+      signingSecret: SECRET,
+      bucket,
+      fetcher: fetcher as unknown as typeof fetch,
+    })
+    expect(bucket.get).toHaveBeenCalled()
+    expect(fetcher).toHaveBeenCalled() // 上流 fetch にフォールスルー
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('fresh')
+  })
+
   it('falls through to CSE when bucket has no object (no put without ctx)', async () => {
     const bucket = makeBucket(null)
     const fetcher = jest.fn().mockResolvedValue(

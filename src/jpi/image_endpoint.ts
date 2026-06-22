@@ -127,9 +127,15 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     try {
       const obj = await bucket.get(objectKey)
       if (obj) {
-        const buf = await obj.arrayBuffer()
-        const contentType = obj.httpMetadata?.contentType ?? 'application/octet-stream'
-        return respond(imageResponse(buf, contentType))
+        const contentType = obj.httpMetadata?.contentType ?? ''
+        // Same rule as upstream — guard against historical entries with missing
+        // or non-image metadata that would make Slack reject the block.
+        if (!ALLOWED_IMAGE_TYPES.test(contentType)) {
+          console.warn('handleJpiImage: R2 object content-type not allowed', { q, contentType })
+        } else {
+          const buf = await obj.arrayBuffer()
+          return respond(imageResponse(buf, contentType))
+        }
       }
     } catch (e) {
       console.warn('handleJpiImage: R2 get failed, falling through to CSE', { q, error: String(e) })
