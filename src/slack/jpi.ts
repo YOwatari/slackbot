@@ -5,6 +5,13 @@ import { jpiBlocks } from './views/jpi'
 import { buildJpiImageUrl, JpiConfig } from '../jpi/url_builder'
 
 export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) {
+  if (!config.imageEndpoint || !config.signingSecret) {
+    console.warn('jpi: skipping handler registration due to missing config', {
+      hasEndpoint: !!config.imageEndpoint,
+      hasSecret: !!config.signingSecret,
+    })
+    return
+  }
   const pattern = /^!jpi\s+(.*)/
   app.message(pattern, async ({ context, payload }) => {
     if (!NoBotMessage(payload)) return
