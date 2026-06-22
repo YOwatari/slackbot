@@ -1,21 +1,21 @@
 import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
-import { DirectMention, NoBotMessage } from './util'
+import { DirectMention, NoBotMessage, safeMessage } from './util'
 
 export function keshite(app: SlackApp<any> | SlackOAuthApp<any>) {
   const pattern = /消して\s(.+)/
-  app.message(pattern, async ({ context, payload }) => {
-    if (NoBotMessage(payload) && DirectMention(context, payload)) {
+  app.message(
+    pattern,
+    safeMessage(async ({ context, payload }) => {
+      if (!NoBotMessage(payload) || !DirectMention(context, payload)) return
       const match = payload.text.match(pattern)
-      if (match && match[1]) {
-        console.log('keshite: ', match[1])
+      if (!match || !match[1]) return
 
-        const parsed = parse(match[1])
-        if (parsed) {
-          await context.client.chat.delete(parsed)
-        }
+      const parsed = parse(match[1])
+      if (parsed) {
+        await context.client.chat.delete(parsed)
       }
-    }
-  })
+    }),
+  )
 }
 
 export function parse(url: string): { channel: string; ts: string } | null {
