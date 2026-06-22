@@ -24,11 +24,14 @@ export default {
     ctx: ExecutionContext,
     ): Promise<Response> {
     const url = new URL(request.url)
-    const googleImage = new GoogleImageSearch(env)
 
     if (url.pathname === "/jpi/img") {
+      if (!env.JPI_SIGNING_SECRET) {
+        console.error("JPI_SIGNING_SECRET is not configured")
+        return new Response("misconfigured", { status: 500 })
+      }
       return handleJpiImage(request, {
-        search: googleImage,
+        search: new GoogleImageSearch(env),
         signingSecret: env.JPI_SIGNING_SECRET,
         bucket: env.JPI_IMAGES,
       }, ctx)
