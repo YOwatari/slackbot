@@ -28,4 +28,27 @@ describe('buildJpiImageUrl', () => {
     )
     expect(new URL(urlStr).searchParams.get('q')).toBe('ねこ')
   })
+
+  it('trims keyword so the signature matches what the endpoint verifies', async () => {
+    const urlStr = await buildJpiImageUrl(
+      { imageEndpoint: ENDPOINT, signingSecret: SECRET },
+      '  neko  ',
+      () => 100,
+    )
+    const u = new URL(urlStr)
+    expect(u.searchParams.get('q')).toBe('neko')
+    const sig = u.searchParams.get('sig') ?? ''
+    expect(await verify(SECRET, 'neko:100', sig)).toBe(true)
+  })
+
+  it('preserves existing query strings in imageEndpoint', async () => {
+    const urlStr = await buildJpiImageUrl(
+      { imageEndpoint: `${ENDPOINT}?v=1`, signingSecret: SECRET },
+      'neko',
+      () => 1,
+    )
+    const u = new URL(urlStr)
+    expect(u.searchParams.get('v')).toBe('1')
+    expect(u.searchParams.get('q')).toBe('neko')
+  })
 })
