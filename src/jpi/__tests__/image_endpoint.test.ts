@@ -14,6 +14,20 @@ async function signedUrl(q: string, t: number = FIXED_NOW): Promise<string> {
   return `http://x/jpi/img?q=${encodeURIComponent(q)}&t=${t}&sig=${sig}`
 }
 
+function makeBucket(obj: { bytes: ArrayBuffer; contentType: string } | null) {
+  return {
+    get: jest.fn(async () =>
+      obj
+        ? {
+            arrayBuffer: async () => obj.bytes,
+            httpMetadata: { contentType: obj.contentType },
+          }
+        : null,
+    ),
+    put: jest.fn(async () => undefined),
+  }
+}
+
 describe('handleJpiImage', () => {
   it('returns 400 when q is missing', async () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img'), {
@@ -158,5 +172,62 @@ describe('handleJpiImage', () => {
     })
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
+  })
+
+  it('returns R2-stored bytes without hitting CSE when the object exists', async () => {
+    const bytes = new TextEncoder().encode('persisted').buffer as ArrayBuffer
+    const bucket = makeBucket({ bytes, contentType: 'image/jpeg' })
+    const searchSpy = jest.fn(async () => ['https://example.com/never-called.png'])
+    const fetcherSpy = jest.fn()
+    const res = await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: { image_urls: searchSpy } as unknown as GoogleImageSearch<GoogleImageEnv>,
+      signingSecret: SECRET,
+      bucket,
+      fetcher: fetcherSpy as unknown as typeof fetch,
+    })
+    expect(bucket.get).toHaveBeenCalledWith(`neko:${FIXED_NOW}`)
+    expect(searchSpy).not.toHaveBeenCalled()
+    expect(fetcherSpy).not.toHaveBeenCalled()
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toBe('image/jpeg')
+    expect(await res.text()).toBe('persisted')
+  })
+
+  it('falls through to CSE when bucket has no object (no put without ctx)', async () => {
+    const bucket = makeBucket(null)
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('fresh', { status: 200, headers: { 'content-type': 'image/png' } }),
+    )
+    const res = await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/a.png']),
+      signingSecret: SECRET,
+      bucket,
+      fetcher: fetcher as unknown as typeof fetch,
+    })
+    expect(bucket.get).toHaveBeenCalled()
+    expect(fetcher).toHaveBeenCalled()
+    expect(bucket.put).not.toHaveBeenCalled() // ctx undefined なので waitUntil 経路に乗らない
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('fresh')
+  })
+
+  it('falls through to CSE when bucket.get throws', async () => {
+    const bucket = {
+      get: jest.fn(async () => {
+        throw new Error('R2 down')
+      }),
+      put: jest.fn(),
+    }
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('via-cse', { status: 200, headers: { 'content-type': 'image/png' } }),
+    )
+    const res = await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/a.png']),
+      signingSecret: SECRET,
+      bucket,
+      fetcher: fetcher as unknown as typeof fetch,
+    })
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('via-cse')
   })
 })

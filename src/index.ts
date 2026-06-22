@@ -1,5 +1,5 @@
 import { defaultOpenIDConnectCallback, ExecutionContext, KVInstallationStore, KVStateStore, SlackOAuthAndOIDCEnv, SlackOAuthApp } from "slack-cloudflare-workers";
-import { KVNamespace } from "@cloudflare/workers-types";
+import { KVNamespace, R2Bucket } from "@cloudflare/workers-types";
 import { erande } from "./slack/erande";
 import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
 import { handleJpiImage } from "./jpi/image_endpoint";
@@ -12,6 +12,7 @@ import { ping } from "./slack/ping";
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
   JPI_SIGNING_SECRET: string,
   JPI_IMAGE_ENDPOINT: string,
+  JPI_IMAGES: R2Bucket,
   SLACK_INSTALLATIONS: KVNamespace,
   SLACK_OAUTH_STATES: KVNamespace,
 }
@@ -29,6 +30,7 @@ export default {
       return handleJpiImage(request, {
         search: googleImage,
         signingSecret: env.JPI_SIGNING_SECRET,
+        bucket: env.JPI_IMAGES,
       }, ctx)
     }
 

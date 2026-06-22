@@ -7,5 +7,9 @@ kv_namespaces = [
     { binding = "SLACK_OAUTH_STATES", id = "b6951c08e0f64297abb506795d226c27", preview_id = "5820402c1dfd4dd6bd6e4cd81dd90eff" },
 ]
 
+[[r2_buckets]]
+binding = "JPI_IMAGES"
+bucket_name = "slackbot-jpi-images"
+
 [vars]
 JPI_IMAGE_ENDPOINT = "https://slackbot.yowatari.workers.dev/jpi/img"

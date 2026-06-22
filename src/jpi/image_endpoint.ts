@@ -1,14 +1,34 @@
 import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
 import { verify } from './signature'
 
+// Minimal R2 surface we use. Avoids pulling @cloudflare/workers-types'
+// R2Bucket type into the function signature (it conflicts with slack-edge's
+// type for ExecutionContext when both are imported into the same scope).
+export type R2ObjectLike = {
+  arrayBuffer(): Promise<ArrayBuffer>
+  httpMetadata?: { contentType?: string }
+}
+export type R2BucketLike = {
+  get(key: string): Promise<R2ObjectLike | null>
+  put(key: string, value: ArrayBuffer, options?: { httpMetadata?: { contentType?: string } }): Promise<unknown>
+}
+
 export type JpiImageDeps<E extends GoogleImageEnv> = {
   search: GoogleImageSearch<E>
   signingSecret: string
+  /**
+   * If provided, images are persisted to R2 under `${q}:${t}` so that the same
+   * post is rendered with the same image forever — independent of CSE result
+   * drift over time or edge cache eviction.
+   */
+  bucket?: R2BucketLike
   fetcher?: typeof fetch
   /**
    * Returns an index into `urls` for the given seed. Default hashes the seed
    * (q+t) with SHA-256, so a given post is rendered the same across all edge
-   * colos / users instead of each region rolling its own Math.random().
+   * colos / users instead of each region rolling its own Math.random(). Once
+   * R2 is in front of CSE the index choice only matters for the very first
+   * fetch of a (q, t) pair.
    */
   pickIndex?: (urls: string[], seed: string) => Promise<number> | number
 }
@@ -41,12 +61,22 @@ function placeholderResponse(): Response {
   })
 }
 
+function imageResponse(buf: ArrayBuffer, contentType: string): Response {
+  return new Response(buf, {
+    status: 200,
+    headers: {
+      'Content-Type': contentType,
+      'Cache-Control': IMAGE_CACHE_CONTROL,
+    },
+  })
+}
+
 export async function handleJpiImage<E extends GoogleImageEnv>(
   request: Request,
   deps: JpiImageDeps<E>,
   ctx?: WaitUntilContext,
 ): Promise<Response> {
-  const { search, signingSecret, fetcher = fetch, pickIndex = defaultPickIndex } = deps
+  const { search, signingSecret, bucket, fetcher = fetch, pickIndex = defaultPickIndex } = deps
 
   const url = new URL(request.url)
   const q = url.searchParams.get('q')?.trim() ?? ''
@@ -67,9 +97,6 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   }
 
   // Signature verified — safe to use the request URL as a cache key.
-  // Same q+t+sig is identical input, so the response (including placeholders)
-  // can be reused across Slack's multi-region image_url prefetches without
-  // re-hitting CSE.
   const respond = (r: Response): Response => {
     if (ctx) {
       ctx.waitUntil(caches.default.put(request, r.clone()))
@@ -81,6 +108,21 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     const cached = await caches.default.match(request)
     if (cached) {
       return cached
+    }
+  }
+
+  // R2 lookup: same (q, t) → same image, forever.
+  const objectKey = `${q}:${t}`
+  if (bucket) {
+    try {
+      const obj = await bucket.get(objectKey)
+      if (obj) {
+        const buf = await obj.arrayBuffer()
+        const contentType = obj.httpMetadata?.contentType ?? 'application/octet-stream'
+        return respond(imageResponse(buf, contentType))
+      }
+    } catch (e) {
+      console.warn('handleJpiImage: R2 get failed, falling through to CSE', { q, error: String(e) })
     }
   }
 
@@ -106,15 +148,17 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
       return respond(placeholderResponse())
     }
     const buf = await imgRes.arrayBuffer()
-    return respond(
-      new Response(buf, {
-        status: 200,
-        headers: {
-          'Content-Type': imgRes.headers.get('content-type') ?? 'application/octet-stream',
-          'Cache-Control': IMAGE_CACHE_CONTROL,
-        },
-      }),
-    )
+    const contentType = imgRes.headers.get('content-type') ?? 'application/octet-stream'
+
+    if (bucket && ctx) {
+      ctx.waitUntil(
+        bucket.put(objectKey, buf, { httpMetadata: { contentType } }).catch((e: unknown) => {
+          console.warn('handleJpiImage: R2 put failed', { q, error: String(e) })
+        }),
+      )
+    }
+
+    return respond(imageResponse(buf, contentType))
   } catch (e) {
     console.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
     return respond(placeholderResponse())
