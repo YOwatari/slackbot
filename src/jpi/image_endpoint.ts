@@ -54,7 +54,12 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     fetcher = fetch,
     pickIndex = defaultPickIndex,
     now = () => Date.now(),
-    maxClockSkewMs = 60 * 60 * 1000,
+    // Replay protection is effectively disabled by default: the upside of
+    // expiring `t` is small here (URL only causes CSE+upstream fetch, both
+    // already rate-limited by edge cache) while the downside is past Slack
+    // posts becoming un-rerenderable. Set to a finite value if cost concerns
+    // change.
+    maxClockSkewMs = Infinity,
   } = deps
 
   const url = new URL(request.url)

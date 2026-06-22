@@ -62,14 +62,29 @@ describe('handleJpiImage', () => {
     expect(res.status).toBe(401)
   })
 
-  it('returns 401 when t is too old (>1h skew)', async () => {
+  it('returns 401 when t is outside maxClockSkewMs (replay protection enabled)', async () => {
     const oldT = FIXED_NOW - 2 * 60 * 60 * 1000
     const res = await handleJpiImage(new Request(await signedUrl('neko', oldT)), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
       now,
+      maxClockSkewMs: 60 * 60 * 1000,
     })
     expect(res.status).toBe(401)
+  })
+
+  it('accepts any t when maxClockSkewMs defaults to Infinity', async () => {
+    const ancientT = 0
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('x', { status: 200, headers: { 'content-type': 'image/png' } }),
+    )
+    const res = await handleJpiImage(new Request(await signedUrl('neko', ancientT)), {
+      search: makeSearch(async () => ['https://example.com/a.png']),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+      now,
+    })
+    expect(res.status).toBe(200)
   })
 
   it('returns 401 when signature does not match', async () => {
