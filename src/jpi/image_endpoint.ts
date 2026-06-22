@@ -78,6 +78,12 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
 ): Promise<Response> {
   const { search, signingSecret, bucket, fetcher = fetch, pickIndex = defaultPickIndex } = deps
 
+  // Cache API only accepts GET; reject other methods early to avoid noisy
+  // caches.default.put() exceptions for HEAD/POST/etc.
+  if (request.method !== 'GET') {
+    return new Response('method not allowed', { status: 405, headers: { Allow: 'GET' } })
+  }
+
   const url = new URL(request.url)
   const q = url.searchParams.get('q')?.trim() ?? ''
   if (!q) {

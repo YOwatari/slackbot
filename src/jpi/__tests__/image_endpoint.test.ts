@@ -29,6 +29,15 @@ function makeBucket(obj: { bytes: ArrayBuffer; contentType: string } | null) {
 }
 
 describe('handleJpiImage', () => {
+  it('returns 405 for non-GET methods', async () => {
+    const res = await handleJpiImage(new Request('http://x/jpi/img', { method: 'POST' }), {
+      search: makeSearch(async () => []),
+      signingSecret: SECRET,
+    })
+    expect(res.status).toBe(405)
+    expect(res.headers.get('allow')).toBe('GET')
+  })
+
   it('returns 400 when q is missing', async () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img'), {
       search: makeSearch(async () => []),
