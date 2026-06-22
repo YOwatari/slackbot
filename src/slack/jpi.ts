@@ -20,15 +20,15 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) 
     const keyword = match[1].trim()
     if (!keyword) return
 
-    const imageUrl = await buildJpiImageUrl(config, keyword)
     try {
+      const imageUrl = await buildJpiImageUrl(config, keyword)
       await context.say({
         text: keyword,
         blocks: JSXSlack(jpiBlocks({ text: keyword, url: imageUrl })),
         link_names: false,
       })
     } catch (e) {
-      console.warn('jpi: say failed', { keyword, error: String(e) })
+      console.warn('jpi: handler failed', { keyword, error: String(e) })
     }
   })
 }
