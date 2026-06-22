@@ -69,7 +69,7 @@ export function feature(app: SlackApp<any> | SlackOAuthApp<any>) {
 
 ### Tests
 
-`src/**/__tests__/*.test.ts` を ts-jest で実行。現状は `keshite.ts` の URL パーサのような副作用のない純粋関数のみがテスト対象になっており、Slack handler 自体の統合テストは存在しない。新規に純粋関数を追加した場合はテストを揃える。
+`src/**/__tests__/*.test.ts` を ts-jest で実行。`keshite.ts` の URL パーサに加え、`/jpi/img` エンドポイント (`handleJpiImage`)、HMAC sign/verify ユーティリティ、URL builder などの単体テストを揃えている。Slack message handler 本体の統合テストはまだ無いので、ハンドラ内部のロジックは可能なら純粋関数として切り出してテスト可能にする方針。
 
 ## Deployment Notes
 
