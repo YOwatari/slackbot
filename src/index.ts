@@ -8,6 +8,7 @@ import { OpenAI, OpenAIEnv } from "./openai/completions";
 import { chat } from "./slack/chat";
 import { keshite } from "./slack/keshite";
 import { ping } from "./slack/ping";
+import { consoleLogger as logger } from "./lib/logger";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
   JPI_SIGNING_SECRET: string,
@@ -27,7 +28,7 @@ export default {
 
     if (url.pathname === "/jpi/img") {
       if (!env.JPI_SIGNING_SECRET) {
-        console.error("JPI_SIGNING_SECRET is not configured")
+        logger.error("JPI_SIGNING_SECRET is not configured")
         return new Response("misconfigured", { status: 500 })
       }
       return handleJpiImage(request, {
