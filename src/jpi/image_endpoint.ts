@@ -5,9 +5,20 @@ export type JpiImageDeps<E extends GoogleImageEnv> = {
   search: GoogleImageSearch<E>
   signingSecret: string
   fetcher?: typeof fetch
-  random?: () => number
+  /**
+   * Returns an index into `urls` for the given seed. Default hashes the seed
+   * (q+t) with SHA-256, so a given post is rendered the same across all edge
+   * colos / users instead of each region rolling its own Math.random().
+   */
+  pickIndex?: (urls: string[], seed: string) => Promise<number> | number
   now?: () => number
   maxClockSkewMs?: number
+}
+
+async function defaultPickIndex(urls: string[], seed: string): Promise<number> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed))
+  const n = new DataView(hash).getUint32(0, false)
+  return n % urls.length
 }
 
 // Minimal subset of Cloudflare Workers' ExecutionContext we actually need.
@@ -41,7 +52,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     search,
     signingSecret,
     fetcher = fetch,
-    random = Math.random,
+    pickIndex = defaultPickIndex,
     now = () => Date.now(),
     maxClockSkewMs = 60 * 60 * 1000,
   } = deps
@@ -95,7 +106,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     return respond(placeholderResponse())
   }
 
-  const picked = urls[Math.floor(random() * urls.length)]
+  const picked = urls[await pickIndex(urls, `${q}:${t}`)]
   try {
     const imgRes = await fetcher(picked, {
       headers: { 'User-Agent': UPSTREAM_USER_AGENT },

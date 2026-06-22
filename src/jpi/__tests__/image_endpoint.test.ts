@@ -112,18 +112,39 @@ describe('handleJpiImage', () => {
     expect(await res.text()).toBe('binary')
   })
 
-  it('picks the first url when random returns 0 (signed)', async () => {
+  it('picks via pickIndex (injected for determinism)', async () => {
     const fetcher = jest.fn().mockResolvedValue(
-      new Response('first', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
+      new Response('second', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
     )
     await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => ['https://example.com/1.jpg', 'https://example.com/2.jpg']),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      random: () => 0,
+      pickIndex: () => 1,
       now,
     })
-    expect(fetcher).toHaveBeenCalledWith('https://example.com/1.jpg', expect.any(Object))
+    expect(fetcher).toHaveBeenCalledWith('https://example.com/2.jpg', expect.any(Object))
+  })
+
+  it('picks deterministically from q+t when pickIndex is not injected', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('x', { status: 200, headers: { 'content-type': 'image/jpeg' } }),
+    )
+    const urls = ['https://example.com/a.jpg', 'https://example.com/b.jpg', 'https://example.com/c.jpg']
+    // 2 回叩く → 同じ q+t なら同じ URL が選ばれる
+    await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => urls),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+      now,
+    })
+    await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => urls),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+      now,
+    })
+    expect(fetcher.mock.calls[0][0]).toBe(fetcher.mock.calls[1][0])
   })
 
   it('falls back to placeholder redirect when search throws (signed)', async () => {
