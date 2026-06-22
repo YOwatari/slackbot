@@ -1,13 +1,13 @@
 import { SlackApp, SlackOAuthApp } from 'slack-cloudflare-workers'
-import { DirectMention, NoBotMessage } from './util'
+import { DirectMention, NoBotMessage, safeMessage } from './util'
 
 export function ping(app: SlackApp<any> | SlackOAuthApp<any>) {
-  let pattern = /ping/
-  app.message(pattern, async ({ context, payload }) => {
-    if (NoBotMessage(payload) && DirectMention(context, payload)) {
-      await context.say({
-        text: `pong`,
-      })
-    }
-  })
+  const pattern = /ping/
+  app.message(
+    pattern,
+    safeMessage(async ({ context, payload }) => {
+      if (!NoBotMessage(payload) || !DirectMention(context, payload)) return
+      await context.say({ text: 'pong' })
+    }),
+  )
 }
