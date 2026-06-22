@@ -11,8 +11,6 @@ export type JpiImageDeps<E extends GoogleImageEnv> = {
    * colos / users instead of each region rolling its own Math.random().
    */
   pickIndex?: (urls: string[], seed: string) => Promise<number> | number
-  now?: () => number
-  maxClockSkewMs?: number
 }
 
 async function defaultPickIndex(urls: string[], seed: string): Promise<number> {
@@ -48,19 +46,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   deps: JpiImageDeps<E>,
   ctx?: WaitUntilContext,
 ): Promise<Response> {
-  const {
-    search,
-    signingSecret,
-    fetcher = fetch,
-    pickIndex = defaultPickIndex,
-    now = () => Date.now(),
-    // Replay protection is effectively disabled by default: the upside of
-    // expiring `t` is small here (URL only causes CSE+upstream fetch, both
-    // already rate-limited by edge cache) while the downside is past Slack
-    // posts becoming un-rerenderable. Set to a finite value if cost concerns
-    // change.
-    maxClockSkewMs = Infinity,
-  } = deps
+  const { search, signingSecret, fetcher = fetch, pickIndex = defaultPickIndex } = deps
 
   const url = new URL(request.url)
   const q = url.searchParams.get('q')?.trim() ?? ''
@@ -73,9 +59,8 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   if (!t || !sig) {
     return new Response('missing signature', { status: 401 })
   }
-  const ts = Number(t)
-  if (!Number.isFinite(ts) || Math.abs(now() - ts) > maxClockSkewMs) {
-    return new Response('expired or invalid t', { status: 401 })
+  if (!Number.isFinite(Number(t))) {
+    return new Response('invalid t', { status: 401 })
   }
   if (!(await verify(signingSecret, `${q}:${t}`, sig))) {
     return new Response('invalid signature', { status: 401 })

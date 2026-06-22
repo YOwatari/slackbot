@@ -4,7 +4,6 @@ import { GoogleImageEnv, GoogleImageSearch } from '../../google/image_search'
 
 const SECRET = 'test-secret'
 const FIXED_NOW = 1_700_000_000_000
-const now = () => FIXED_NOW
 
 function makeSearch(impl: (q: string) => Promise<string[]>): GoogleImageSearch<GoogleImageEnv> {
   return { image_urls: impl } as unknown as GoogleImageSearch<GoogleImageEnv>
@@ -20,7 +19,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img'), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(400)
   })
@@ -29,7 +27,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img?q='), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(400)
   })
@@ -38,7 +35,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img?q=%20%20'), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(400)
   })
@@ -47,7 +43,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request('http://x/jpi/img?q=neko'), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(401)
   })
@@ -57,23 +52,11 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request(`http://x/jpi/img?q=neko&t=abc&sig=${sig}`), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(401)
   })
 
-  it('returns 401 when t is outside maxClockSkewMs (replay protection enabled)', async () => {
-    const oldT = FIXED_NOW - 2 * 60 * 60 * 1000
-    const res = await handleJpiImage(new Request(await signedUrl('neko', oldT)), {
-      search: makeSearch(async () => []),
-      signingSecret: SECRET,
-      now,
-      maxClockSkewMs: 60 * 60 * 1000,
-    })
-    expect(res.status).toBe(401)
-  })
-
-  it('accepts any t when maxClockSkewMs defaults to Infinity', async () => {
+  it('accepts arbitrarily old t (no clock-skew check)', async () => {
     const ancientT = 0
     const fetcher = jest.fn().mockResolvedValue(
       new Response('x', { status: 200, headers: { 'content-type': 'image/png' } }),
@@ -82,7 +65,6 @@ describe('handleJpiImage', () => {
       search: makeSearch(async () => ['https://example.com/a.png']),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      now,
     })
     expect(res.status).toBe(200)
   })
@@ -91,7 +73,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request(`http://x/jpi/img?q=neko&t=${FIXED_NOW}&sig=deadbeef`), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(401)
   })
@@ -100,7 +81,6 @@ describe('handleJpiImage', () => {
     const res = await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => []),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
@@ -114,7 +94,6 @@ describe('handleJpiImage', () => {
       search: makeSearch(async () => ['https://example.com/a.png']),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      now,
     })
     expect(fetcher).toHaveBeenCalledWith(
       'https://example.com/a.png',
@@ -136,7 +115,6 @@ describe('handleJpiImage', () => {
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
       pickIndex: () => 1,
-      now,
     })
     expect(fetcher).toHaveBeenCalledWith('https://example.com/2.jpg', expect.any(Object))
   })
@@ -151,13 +129,11 @@ describe('handleJpiImage', () => {
       search: makeSearch(async () => urls),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      now,
     })
     await handleJpiImage(new Request(await signedUrl('neko')), {
       search: makeSearch(async () => urls),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      now,
     })
     expect(fetcher.mock.calls[0][0]).toBe(fetcher.mock.calls[1][0])
   })
@@ -168,7 +144,6 @@ describe('handleJpiImage', () => {
         throw new Error('boom')
       }),
       signingSecret: SECRET,
-      now,
     })
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
@@ -180,7 +155,6 @@ describe('handleJpiImage', () => {
       search: makeSearch(async () => ['https://example.com/a.png']),
       signingSecret: SECRET,
       fetcher: fetcher as unknown as typeof fetch,
-      now,
     })
     expect(res.status).toBe(302)
     expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
