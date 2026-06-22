@@ -1,3 +1,5 @@
+import { consoleLogger as logger } from '../lib/logger'
+
 type result = {
   items?: Array<{
     link?: string | null
@@ -41,7 +43,7 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
     const res = await fetcher(url)
     if (!res.ok) {
       const body = await res.text().catch(() => '')
-      console.warn('GoogleImageSearch: CSE request failed', {
+      logger.warn('GoogleImageSearch: CSE request failed', {
         status: res.status,
         statusText: res.statusText,
         body: body.slice(0, 500),
@@ -52,7 +54,7 @@ export class GoogleImageSearch<E extends GoogleImageEnv> {
     const total = result.items?.length ?? 0
     const filtered = (result.items ?? []).map((i) => i.link).filter((l): l is string => !!l && !isBlockedUrl(l))
     if (filtered.length === 0) {
-      console.warn('GoogleImageSearch: no urls after filter', { q, total, filtered: filtered.length })
+      logger.warn('GoogleImageSearch: no urls after filter', { q, total, filtered: filtered.length })
     }
     return filtered
   }

@@ -3,10 +3,11 @@ import { JSXSlack } from 'jsx-slack'
 import { NoBotMessage } from './util'
 import { jpiBlocks } from './views/jpi'
 import { buildJpiImageUrl, JpiConfig } from '../jpi/url_builder'
+import { consoleLogger as logger } from '../lib/logger'
 
 export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) {
   if (!config.imageEndpoint || !config.signingSecret) {
-    console.warn('jpi: skipping handler registration due to missing config', {
+    logger.warn('jpi: skipping handler registration due to missing config', {
       hasEndpoint: !!config.imageEndpoint,
       hasSecret: !!config.signingSecret,
     })
@@ -28,7 +29,7 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) 
         link_names: false,
       })
     } catch (e) {
-      console.warn('jpi: handler failed', { keyword, error: String(e) })
+      logger.warn('jpi: handler failed', { keyword, error: String(e) })
     }
   })
 }

@@ -1,4 +1,5 @@
 import { GoogleImageEnv, GoogleImageSearch } from '../google/image_search'
+import { consoleLogger as logger } from '../lib/logger'
 import { verify } from './signature'
 
 // Minimal R2 surface we use. Avoids pulling @cloudflare/workers-types'
@@ -131,14 +132,14 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
         // Same rule as upstream — guard against historical entries with missing
         // or non-image metadata that would make Slack reject the block.
         if (!ALLOWED_IMAGE_TYPES.test(contentType)) {
-          console.warn('handleJpiImage: R2 object content-type not allowed', { q, contentType })
+          logger.warn('handleJpiImage: R2 object content-type not allowed', { q, contentType })
         } else {
           const buf = await obj.arrayBuffer()
           return respond(imageResponse(buf, contentType))
         }
       }
     } catch (e) {
-      console.warn('handleJpiImage: R2 get failed, falling through to CSE', { q, error: String(e) })
+      logger.warn('handleJpiImage: R2 get failed, falling through to CSE', { q, error: String(e) })
     }
   }
 
@@ -146,7 +147,7 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
   try {
     urls = await search.image_urls(q)
   } catch (e) {
-    console.warn('handleJpiImage: search threw', { q, error: String(e) })
+    logger.warn('handleJpiImage: search threw', { q, error: String(e) })
     return respond(placeholderResponse())
   }
 
@@ -162,12 +163,12 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
       headers: { 'User-Agent': UPSTREAM_USER_AGENT },
     })
     if (!imgRes.ok) {
-      console.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
+      logger.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
       return respond(placeholderResponse())
     }
     const contentType = imgRes.headers.get('content-type') ?? ''
     if (!ALLOWED_IMAGE_TYPES.test(contentType)) {
-      console.warn('handleJpiImage: upstream content-type not allowed', { q, url: picked, contentType })
+      logger.warn('handleJpiImage: upstream content-type not allowed', { q, url: picked, contentType })
       return respond(placeholderResponse())
     }
     const buf = await imgRes.arrayBuffer()
@@ -175,14 +176,14 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
     if (bucket && ctx) {
       ctx.waitUntil(
         bucket.put(objectKey, buf, { httpMetadata: { contentType } }).catch((e: unknown) => {
-          console.warn('handleJpiImage: R2 put failed', { q, error: String(e) })
+          logger.warn('handleJpiImage: R2 put failed', { q, error: String(e) })
         }),
       )
     }
 
     return respond(imageResponse(buf, contentType))
   } catch (e) {
-    console.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
+    logger.warn('handleJpiImage: upstream fetch threw', { q, url: picked, error: String(e) })
     return respond(placeholderResponse())
   }
 }
