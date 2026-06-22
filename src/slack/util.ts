@@ -32,14 +32,22 @@ export function NoBotMessage(
   return payload.subtype === undefined
 }
 
+function formatError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? `${error.name}: ${error.message}`
+  }
+  return String(error)
+}
+
 /**
  * Wrap a message-event handler so any thrown error is caught and logged
  * instead of propagating up and turning into a 500 (which Slack would then
  * retry, multiplying the failure).
  *
- * Optionally a `fallback` can be supplied that runs after a handler failure
- * (e.g. to post a user-visible apology). If the fallback itself throws, the
- * error is swallowed and logged — we never re-throw, by design.
+ * Handler failures are always logged — providing a `fallback` does not
+ * suppress the warn. The fallback is for additional behavior on top of the
+ * log (e.g. posting a user-visible apology). If the fallback itself throws,
+ * that error is also logged and never re-thrown, by design.
  */
 export function safeMessage<Args>(
   handler: (args: Args) => Promise<void> | void,
@@ -49,17 +57,16 @@ export function safeMessage<Args>(
     try {
       await handler(args)
     } catch (error) {
+      logger.warn('safeMessage: handler failed', { error: formatError(error) })
       if (fallback) {
         try {
           await fallback(args, error)
         } catch (fallbackError) {
           logger.warn('safeMessage: fallback also threw', {
-            error: String(fallbackError),
-            original: String(error),
+            error: formatError(fallbackError),
+            original: formatError(error),
           })
         }
-      } else {
-        logger.warn('safeMessage: handler failed', { error: String(error) })
       }
     }
   }

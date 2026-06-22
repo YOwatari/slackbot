@@ -32,7 +32,19 @@ describe('safeMessage', () => {
     )
   })
 
-  it('invokes fallback with the original error when handler throws', async () => {
+  it('preserves the Error stack trace in the log payload', async () => {
+    const wrapped = safeMessage(async () => {
+      throw new Error('with-stack')
+    })
+    await wrapped({})
+    const fields = warnSpy.mock.calls[0][1] as { error: string }
+    expect(fields.error).toContain('with-stack')
+    // jest preserves Error.stack which begins with the message line and
+    // continues with stack frames — assert we kept more than just the message.
+    expect(fields.error.split('\n').length).toBeGreaterThan(1)
+  })
+
+  it('invokes fallback while still logging the handler failure', async () => {
     const fallback = jest.fn()
     const wrapped = safeMessage(
       async () => {
@@ -42,10 +54,13 @@ describe('safeMessage', () => {
     )
     await wrapped({ kind: 'fake' })
     expect(fallback).toHaveBeenCalledWith({ kind: 'fake' }, expect.any(Error))
-    expect(warnSpy).not.toHaveBeenCalled() // no logger.warn when fallback handled it
+    expect(warnSpy).toHaveBeenCalledWith(
+      'safeMessage: handler failed',
+      expect.objectContaining({ error: expect.stringContaining('handler-boom') }),
+    )
   })
 
-  it('logs (and does not rethrow) when fallback itself throws', async () => {
+  it('logs handler failure plus fallback failure when fallback itself throws', async () => {
     const wrapped = safeMessage(
       async () => {
         throw new Error('handler-boom')
@@ -56,11 +71,27 @@ describe('safeMessage', () => {
     )
     await expect(wrapped({})).resolves.toBeUndefined()
     expect(warnSpy).toHaveBeenCalledWith(
+      'safeMessage: handler failed',
+      expect.objectContaining({ error: expect.stringContaining('handler-boom') }),
+    )
+    expect(warnSpy).toHaveBeenCalledWith(
       'safeMessage: fallback also threw',
       expect.objectContaining({
         error: expect.stringContaining('fallback-boom'),
         original: expect.stringContaining('handler-boom'),
       }),
+    )
+  })
+
+  it('stringifies non-Error throws verbatim', async () => {
+    const wrapped = safeMessage(async () => {
+      // eslint-disable-next-line @typescript-eslint/no-throw-literal
+      throw 'plain string'
+    })
+    await wrapped({})
+    expect(warnSpy).toHaveBeenCalledWith(
+      'safeMessage: handler failed',
+      expect.objectContaining({ error: 'plain string' }),
     )
   })
 })
