@@ -198,6 +198,19 @@ describe('handleJpiImage', () => {
     expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
   })
 
+  it('falls back to placeholder when upstream content-type is not an allowed image', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      new Response('<svg/>', { status: 200, headers: { 'content-type': 'image/svg+xml' } }),
+    )
+    const res = await handleJpiImage(new Request(await signedUrl('neko')), {
+      search: makeSearch(async () => ['https://example.com/a.svg']),
+      signingSecret: SECRET,
+      fetcher: fetcher as unknown as typeof fetch,
+    })
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toMatch(/^https:\/\/placehold\.co\//)
+  })
+
   it('falls back to placeholder redirect when fetcher returns not ok (signed)', async () => {
     const fetcher = jest.fn().mockResolvedValue(new Response('', { status: 500 }))
     const res = await handleJpiImage(new Request(await signedUrl('neko')), {

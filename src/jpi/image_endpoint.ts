@@ -50,6 +50,10 @@ const UPSTREAM_USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
 const IMAGE_CACHE_CONTROL = 'public, s-maxage=300, max-age=0'
 const PLACEHOLDER_CACHE_CONTROL = 'public, s-maxage=60, max-age=0'
+// Slack rejects the entire block if image_url returns a content-type it can't
+// render (e.g. SVG, text/html error pages). Only forward known-safe raster
+// types; everything else falls back to placeholder.
+const ALLOWED_IMAGE_TYPES = /^image\/(png|jpeg|gif|webp)(;.*)?$/i
 
 function placeholderResponse(): Response {
   return new Response(null, {
@@ -155,8 +159,12 @@ export async function handleJpiImage<E extends GoogleImageEnv>(
       console.warn('handleJpiImage: upstream fetch not ok', { q, url: picked, status: imgRes.status })
       return respond(placeholderResponse())
     }
+    const contentType = imgRes.headers.get('content-type') ?? ''
+    if (!ALLOWED_IMAGE_TYPES.test(contentType)) {
+      console.warn('handleJpiImage: upstream content-type not allowed', { q, url: picked, contentType })
+      return respond(placeholderResponse())
+    }
     const buf = await imgRes.arrayBuffer()
-    const contentType = imgRes.headers.get('content-type') ?? 'application/octet-stream'
 
     if (bucket && ctx) {
       ctx.waitUntil(
