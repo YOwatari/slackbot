@@ -1,4 +1,4 @@
-import { buildChatErrorReply, buildChatMessages, CHAT_APOLOGY } from '../chat'
+import { buildChatMessages, CHAT_APOLOGY } from '../chat'
 
 const BOT_ID = 'UBOT'
 
@@ -124,25 +124,9 @@ describe('buildChatMessages', () => {
   })
 })
 
-describe('buildChatErrorReply', () => {
-  it('quotes the original prompt so the user knows which request failed', () => {
-    const reply = buildChatErrorReply('明日の天気は？')
-    expect(reply).toContain('>明日の天気は？')
-  })
-
-  it('includes a Japanese apology so the user sees something instead of silence', () => {
-    const reply = buildChatErrorReply('hello')
-    expect(reply).toMatch(/応答に失敗/)
-  })
-
-  it('returns a single string (not multi-line noise)', () => {
-    const reply = buildChatErrorReply('test')
-    // quote line + apology line — at most 2 lines, no trailing whitespace
-    expect(reply.split('\n').length).toBeLessThanOrEqual(2)
-    expect(reply).toBe(reply.trim())
-  })
-
-  it('embeds CHAT_APOLOGY so thread replies can reuse the same copy', () => {
-    expect(buildChatErrorReply('whatever')).toContain(CHAT_APOLOGY)
+describe('CHAT_APOLOGY', () => {
+  it('is a single-line apology that mentions the failure', () => {
+    expect(CHAT_APOLOGY).toMatch(/応答に失敗/)
+    expect(CHAT_APOLOGY.split('\n').length).toBe(1)
   })
 })
