@@ -47,4 +47,31 @@ describe('LlamaChat', () => {
     const client = new LlamaChat(ai)
     await expect(client.completions('Hi')).rejects.toThrow('binding down')
   })
+
+  describe('chat (multi-turn)', () => {
+    it('prepends the system prompt to the caller-supplied messages', async () => {
+      const ai = fakeAi(async () => ({ response: 'ok' }))
+      const client = new LlamaChat(ai)
+      await client.chat([
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'reply' },
+        { role: 'user', content: 'second' },
+      ])
+
+      const [, body] = ai.run.mock.calls[0]
+      expect(body.messages).toEqual([
+        { role: 'system', content: expect.stringContaining('チャットボット') },
+        { role: 'user', content: 'first' },
+        { role: 'assistant', content: 'reply' },
+        { role: 'user', content: 'second' },
+      ])
+    })
+
+    it('returns the trimmed response just like completions does', async () => {
+      const ai = fakeAi(async () => ({ response: '  hi  ' }))
+      const client = new LlamaChat(ai)
+      const result = await client.chat([{ role: 'user', content: 'q' }])
+      expect(result).toBe('hi')
+    })
+  })
 })

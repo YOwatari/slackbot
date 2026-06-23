@@ -5,15 +5,21 @@ const SYSTEM_PROMPT =
   'あなたはチャットボットです。短い返答が望ましいです。また、特に指示が無い場合は日本語で応答してください'
 const MAX_TOKENS = 512
 
+export type ChatMessage = {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 export class LlamaChat {
   constructor(private readonly ai: Ai) {}
 
   async completions(prompt: string): Promise<string> {
+    return this.chat([{ role: 'user', content: prompt }])
+  }
+
+  async chat(messages: ChatMessage[]): Promise<string> {
     const result = await this.ai.run(MODEL, {
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
-      ],
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
       max_tokens: MAX_TOKENS,
       temperature: 0.8,
     })
