@@ -83,8 +83,8 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
       async ({ context, payload }) => {
         if (!NoBotMessage(payload)) return
         const match = payload.text.match(pattern)
-        if (!match || !match[1]) return
-        const prompt = match[1]
+        const prompt = match?.[1]?.trim()
+        if (!prompt) return
 
         const messages = await loadConversationMessages(context, payload, prompt)
         const reply = await client.chat(messages)
@@ -98,7 +98,7 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
       async ({ context, payload }) => {
         const text = (payload as { text?: string }).text
         const match = text?.match(pattern)
-        const prompt = match?.[1]
+        const prompt = match?.[1]?.trim()
         if (!prompt) return
         const threadTs = (payload as { thread_ts?: string }).thread_ts
         const inThread = Boolean(threadTs)
