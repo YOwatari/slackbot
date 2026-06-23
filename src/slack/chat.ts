@@ -10,8 +10,10 @@ import { NoBotMessage, safeMessage } from './util'
 
 const pattern = /^!chat\s(.*)/
 
+export const CHAT_APOLOGY = '_応答に失敗しました。しばらくしてからもう一度試してください。_'
+
 export function buildChatErrorReply(prompt: string): string {
-  return `>${prompt}\n_応答に失敗しました。しばらくしてからもう一度試してください。_`
+  return `>${prompt}\n${CHAT_APOLOGY}`
 }
 
 type SlackReply = {
@@ -86,9 +88,11 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
 
         const messages = await loadConversationMessages(context, payload, prompt)
         const reply = await client.chat(messages)
+        const inThread = Boolean(payload.thread_ts)
         await context.say({
-          text: `>${prompt}\n${reply}`,
+          text: inThread ? reply : `>${prompt}\n${reply}`,
           thread_ts: payload.thread_ts,
+          reply_broadcast: inThread,
         })
       },
       async ({ context, payload }) => {
@@ -96,9 +100,12 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
         const match = text?.match(pattern)
         const prompt = match?.[1]
         if (!prompt) return
+        const threadTs = (payload as { thread_ts?: string }).thread_ts
+        const inThread = Boolean(threadTs)
         await context.say({
-          text: buildChatErrorReply(prompt),
-          thread_ts: (payload as { thread_ts?: string }).thread_ts,
+          text: inThread ? CHAT_APOLOGY : buildChatErrorReply(prompt),
+          thread_ts: threadTs,
+          reply_broadcast: inThread,
         })
       },
     ),

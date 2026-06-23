@@ -1,4 +1,4 @@
-import { buildChatErrorReply, buildChatMessages } from '../chat'
+import { buildChatErrorReply, buildChatMessages, CHAT_APOLOGY } from '../chat'
 
 const BOT_ID = 'UBOT'
 
@@ -28,6 +28,18 @@ describe('buildChatMessages', () => {
     const replies = [
       { user: 'UA', text: '!chat foo' },
       { user: BOT_ID, text: '>foo\nbar baz' },
+      { user: 'UA', text: '!chat next' },
+    ]
+    expect(buildChatMessages(replies, BOT_ID, 'next')[1]).toEqual({
+      role: 'assistant',
+      content: 'bar baz',
+    })
+  })
+
+  it('keeps unquoted bot replies as assistant content (thread replies are now quote-less)', () => {
+    const replies = [
+      { user: 'UA', text: '!chat foo' },
+      { user: BOT_ID, text: 'bar baz' },
       { user: 'UA', text: '!chat next' },
     ]
     expect(buildChatMessages(replies, BOT_ID, 'next')[1]).toEqual({
@@ -103,5 +115,9 @@ describe('buildChatErrorReply', () => {
     // quote line + apology line — at most 2 lines, no trailing whitespace
     expect(reply.split('\n').length).toBeLessThanOrEqual(2)
     expect(reply).toBe(reply.trim())
+  })
+
+  it('embeds CHAT_APOLOGY so thread replies can reuse the same copy', () => {
+    expect(buildChatErrorReply('whatever')).toContain(CHAT_APOLOGY)
   })
 })
