@@ -5,10 +5,14 @@ import {
   SlackOAuthApp,
 } from 'slack-cloudflare-workers'
 import { ChatMessage, LlamaChat } from '../ai/completions'
+import { executeTool, TOOLS } from '../ai/tools'
 import { consoleLogger as logger } from '../lib/logger'
-import { NoBotMessage, safeMessage } from './util'
+import { DirectMention, formatError, NoBotMessage, safeMessage } from './util'
 
 const prefixPattern = /^!chat\s(.*)/
+const mentionPrefix = /^<@[^>]+>\s*/
+
+const MAX_TOOL_TURNS = 3
 
 export const CHAT_APOLOGY = '_応答に失敗しました。しばらくしてからもう一度試してください。_'
 
@@ -45,7 +49,7 @@ function transformReply(reply: SlackReply, botUserId: string): ChatMessage | nul
   const isBot = reply.user === botUserId
   const content = isBot
     ? reply.text.replace(/^>[^\n]*\n?/, '').trim()
-    : reply.text.replace(/^!chat\s+/, '').trim()
+    : reply.text.replace(/^(?:!chat\s+|<@[^>]+>\s*)/, '').trim()
   if (!content) return null
   return { role: isBot ? 'assistant' : 'user', content }
 }
@@ -73,11 +77,31 @@ async function fetchRecentThreadReplies(
     }
     return ((res.messages as SlackReply[] | undefined) ?? []).slice(-20)
   } catch (error) {
-    logger.warn('chat: failed to load thread history', {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    logger.warn('chat: failed to load thread history', { error: formatError(error) })
     return null
   }
+}
+
+async function runToolLoop(
+  client: LlamaChat,
+  initialMessages: ChatMessage[],
+): Promise<string> {
+  let messages = initialMessages
+  for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+    const result = await client.chatWithTools(messages, TOOLS)
+    if (result.toolCalls.length === 0) return result.text
+    messages = [
+      ...messages,
+      { role: 'assistant', content: result.text, tool_calls: result.toolCalls },
+      ...result.toolCalls.map((call) => ({
+        role: 'tool' as const,
+        content: executeTool(call),
+        name: call.name,
+      })),
+    ]
+  }
+  logger.warn('chat: tool turn limit reached', { turns: MAX_TOOL_TURNS })
+  return ''
 }
 
 export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat) {
@@ -88,10 +112,15 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
 
       const text = payload.text
       const prefixPrompt = text.match(prefixPattern)?.[1]?.trim()
+      const mentionPrompt =
+        !prefixPrompt && DirectMention(context, payload)
+          ? text.replace(mentionPrefix, '').trim() || undefined
+          : undefined
+      const explicitPrompt = prefixPrompt ?? mentionPrompt
       const inThread = Boolean(payload.thread_ts)
 
-      // prefix が無いなら、スレッド内かつ非コマンドの平文しか相手にしない
-      if (!prefixPrompt) {
+      // 明示的な入口が無いなら、スレッド内かつ非コマンドの平文しか受けない
+      if (!explicitPrompt) {
         if (!inThread) return
         if (/^[!<]/.test(text)) return
         if (!text.trim()) return
@@ -99,27 +128,25 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
 
       const replies = inThread ? await fetchRecentThreadReplies(context, payload) : null
       const botUserId = context.botUserId
-      // prefix 無し継続は、bot が同じスレッドで発言済みのときだけ反応する
-      if (!prefixPrompt && !replies?.some((r) => r.user === botUserId)) return
+      // 平文のスレッド継続は、bot が同じスレッドで発言済みのときだけ反応する
+      if (!explicitPrompt && !replies?.some((r) => r.user === botUserId)) return
 
-      const prompt = prefixPrompt ?? text.trim()
+      const prompt = explicitPrompt ?? text.trim()
       const threadTs = payload.thread_ts ?? payload.ts
+      const initialMessages: ChatMessage[] =
+        replies && botUserId
+          ? buildChatMessages(replies, botUserId, prompt, payload.ts)
+          : [{ role: 'user', content: prompt }]
 
       try {
-        const messages =
-          replies && botUserId
-            ? buildChatMessages(replies, botUserId, prompt, payload.ts)
-            : [{ role: 'user', content: prompt } as ChatMessage]
-        const reply = await client.chat(messages)
+        const reply = await runToolLoop(client, initialMessages)
         await context.say({
-          text: reply,
+          text: reply || CHAT_APOLOGY,
           thread_ts: threadTs,
           reply_broadcast: true,
         })
       } catch (error) {
-        logger.warn('chat: completion failed', {
-          error: error instanceof Error ? error.message : String(error),
-        })
+        logger.warn('chat: completion failed', { error: formatError(error) })
         await context.say({
           text: CHAT_APOLOGY,
           thread_ts: threadTs,

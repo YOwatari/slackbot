@@ -1,6 +1,5 @@
 import { defaultOpenIDConnectCallback, ExecutionContext, KVInstallationStore, KVStateStore, SlackOAuthAndOIDCEnv, SlackOAuthApp } from "slack-cloudflare-workers";
 import { Ai, KVNamespace, R2Bucket } from "@cloudflare/workers-types";
-import { erande } from "./slack/erande";
 import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
 import { handleJpiImage } from "./jpi/image_endpoint";
 import { jpi } from "./slack/jpi";
@@ -53,7 +52,6 @@ export default {
     const llama = new LlamaChat(env.AI)
 
     keshite(app)
-    erande(app)
     jpi(app, {
       imageEndpoint: env.JPI_IMAGE_ENDPOINT,
       signingSecret: env.JPI_SIGNING_SECRET,

@@ -32,7 +32,7 @@ export function NoBotMessage(
   return payload.subtype === undefined
 }
 
-function formatError(error: unknown): string {
+export function formatError(error: unknown): string {
   if (error instanceof Error) {
     return error.stack ?? `${error.name}: ${error.message}`
   }
