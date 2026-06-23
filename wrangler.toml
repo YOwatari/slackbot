@@ -11,5 +11,8 @@ kv_namespaces = [
 binding = "JPI_IMAGES"
 bucket_name = "slackbot-jpi-images"
 
+[ai]
+binding = "AI"
+
 [vars]
 JPI_IMAGE_ENDPOINT = "https://slackbot.yowatari.workers.dev/jpi/img"
