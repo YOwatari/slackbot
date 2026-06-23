@@ -16,13 +16,32 @@ describe('chooseRandom', () => {
 })
 
 describe('executeTool', () => {
-  it('dispatches choose_random to chooseRandom', () => {
-    expect(executeTool({ name: 'choose_random', arguments: { items: ['x'] } })).toBe('x')
+  it('dispatches choose_random with a CSV string', () => {
+    expect(executeTool({ name: 'choose_random', arguments: { items: 'only' } })).toBe('only')
   })
 
-  it('coerces non-string items via String()', () => {
-    const result = executeTool({ name: 'choose_random', arguments: { items: [1, 'two'] } })
-    expect(['1', 'two']).toContain(result)
+  it('splits the CSV string and trims whitespace', () => {
+    const result = executeTool({
+      name: 'choose_random',
+      arguments: { items: ' カレー , ラーメン , うどん ' },
+    })
+    expect(['カレー', 'ラーメン', 'うどん']).toContain(result)
+  })
+
+  it('also accepts a Japanese full-width comma', () => {
+    const result = executeTool({
+      name: 'choose_random',
+      arguments: { items: 'a、b、c' },
+    })
+    expect(['a', 'b', 'c']).toContain(result)
+  })
+
+  it('falls back to a string array if the model sent an array anyway', () => {
+    const result = executeTool({
+      name: 'choose_random',
+      arguments: { items: ['x', 'y'] },
+    })
+    expect(['x', 'y']).toContain(result)
   })
 
   it('returns a fallback when items is missing', () => {
@@ -35,12 +54,12 @@ describe('executeTool', () => {
 })
 
 describe('TOOLS', () => {
-  it('exposes choose_random with an items array parameter', () => {
+  it('exposes choose_random with a string items parameter (Workers AI schema only allows flat types)', () => {
     const t = TOOLS.find((tool) => tool.name === 'choose_random')
     expect(t).toBeDefined()
     expect(t?.parameters).toMatchObject({
       type: 'object',
-      properties: { items: { type: 'array' } },
+      properties: { items: { type: 'string' } },
       required: ['items'],
     })
   })

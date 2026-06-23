@@ -20,14 +20,13 @@ export const TOOLS: Tool[] = [
   {
     name: 'choose_random',
     description:
-      'ユーザーが複数の選択肢から 1 つ選ぶよう求めたときに使う。各選択肢を items 配列に入れて渡すと、その中からランダムに 1 つ返す。',
+      'ユーザーが複数の選択肢から 1 つ選ぶよう求めたときに使う。選択肢をカンマ区切りで items に入れて渡すと、その中からランダムに 1 つ返す。',
     parameters: {
       type: 'object',
       properties: {
         items: {
-          type: 'array',
-          items: { type: 'string' },
-          description: '選択肢のリスト',
+          type: 'string',
+          description: 'カンマ区切りの選択肢 (例: "カレー,ラーメン,うどん")',
         },
       },
       required: ['items'],
@@ -39,10 +38,23 @@ export function executeTool(call: ToolCall): string {
   switch (call.name) {
     case 'choose_random': {
       const raw = call.arguments.items
-      if (!Array.isArray(raw)) return NO_CANDIDATES
-      return chooseRandom(raw.map((v) => String(v)))
+      const items = parseCsvItems(raw)
+      return chooseRandom(items)
     }
     default:
       return `unknown tool: ${call.name}`
   }
+}
+
+function parseCsvItems(raw: unknown): string[] {
+  if (typeof raw === 'string') {
+    return raw
+      .split(/[,、]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+  }
+  if (Array.isArray(raw)) {
+    return raw.map((v) => String(v).trim()).filter((s) => s.length > 0)
+  }
+  return []
 }
