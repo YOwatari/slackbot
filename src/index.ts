@@ -1,19 +1,20 @@
 import { defaultOpenIDConnectCallback, ExecutionContext, KVInstallationStore, KVStateStore, SlackOAuthAndOIDCEnv, SlackOAuthApp } from "slack-cloudflare-workers";
-import { KVNamespace, R2Bucket } from "@cloudflare/workers-types";
+import { Ai, KVNamespace, R2Bucket } from "@cloudflare/workers-types";
 import { erande } from "./slack/erande";
 import { GoogleImageEnv, GoogleImageSearch } from "./google/image_search";
 import { handleJpiImage } from "./jpi/image_endpoint";
 import { jpi } from "./slack/jpi";
-import { OpenAI, OpenAIEnv } from "./openai/completions";
+import { LlamaChat } from "./ai/completions";
 import { chat } from "./slack/chat";
 import { keshite } from "./slack/keshite";
 import { ping } from "./slack/ping";
 import { consoleLogger as logger } from "./lib/logger";
 
-type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & OpenAIEnv & {
+type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & {
   JPI_SIGNING_SECRET: string,
   JPI_IMAGE_ENDPOINT: string,
   JPI_IMAGES: R2Bucket,
+  AI: Ai,
   SLACK_INSTALLATIONS: KVNamespace,
   SLACK_OAUTH_STATES: KVNamespace,
 }
@@ -49,7 +50,7 @@ export default {
         },
       },
     })
-    const openai = new OpenAI(env)
+    const llama = new LlamaChat(env.AI)
 
     keshite(app)
     erande(app)
@@ -57,7 +58,7 @@ export default {
       imageEndpoint: env.JPI_IMAGE_ENDPOINT,
       signingSecret: env.JPI_SIGNING_SECRET,
     })
-    chat(app, openai)
+    chat(app, llama)
     ping(app)
 
     app.event("message", async({}) => {})
