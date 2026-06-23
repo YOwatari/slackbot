@@ -20,19 +20,22 @@ type SlackReply = {
   user?: string
   text?: string
   subtype?: string
+  ts?: string
 }
 
 export function buildChatMessages(
   replies: SlackReply[] | null,
   botUserId: string,
   currentPrompt: string,
+  currentTs?: string,
 ): ChatMessage[] {
   const current: ChatMessage = { role: 'user', content: currentPrompt }
   if (!replies || replies.length === 0) return [current]
 
+  const filtered = currentTs ? replies.filter((r) => r.ts !== currentTs) : replies.slice(0, -1)
   const messages: ChatMessage[] = []
-  for (let i = 0; i < replies.length - 1; i++) {
-    const m = transformReply(replies[i], botUserId)
+  for (const r of filtered) {
+    const m = transformReply(r, botUserId)
     if (m) messages.push(m)
   }
   messages.push(current)
@@ -67,7 +70,12 @@ async function loadConversationMessages(
       ts: threadTs,
       limit: 20,
     })
-    return buildChatMessages((res.messages as SlackReply[] | undefined) ?? null, botUserId, prompt)
+    return buildChatMessages(
+      (res.messages as SlackReply[] | undefined) ?? null,
+      botUserId,
+      prompt,
+      payload.ts,
+    )
   } catch (error) {
     logger.warn('chat: failed to load thread history', {
       error: error instanceof Error ? error.message : String(error),

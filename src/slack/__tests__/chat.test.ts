@@ -97,6 +97,31 @@ describe('buildChatMessages', () => {
       content: 'NEW',
     })
   })
+
+  it('skips the reply whose ts matches currentTs (not necessarily the last entry)', () => {
+    const replies = [
+      { user: 'UA', text: '!chat one', ts: '1.001' },
+      { user: 'UA', text: '!chat TRIGGER', ts: '1.002' },
+      { user: 'UA', text: '!chat later', ts: '1.003' },
+    ]
+    expect(buildChatMessages(replies, BOT_ID, 'TRIGGER', '1.002')).toEqual([
+      { role: 'user', content: 'one' },
+      { role: 'user', content: 'later' },
+      { role: 'user', content: 'TRIGGER' },
+    ])
+  })
+
+  it('processes every reply when currentTs is given but no entry matches', () => {
+    const replies = [
+      { user: 'UA', text: '!chat one', ts: '1.001' },
+      { user: 'UA', text: '!chat two', ts: '1.002' },
+    ]
+    expect(buildChatMessages(replies, BOT_ID, 'now', '9.999')).toEqual([
+      { role: 'user', content: 'one' },
+      { role: 'user', content: 'two' },
+      { role: 'user', content: 'now' },
+    ])
+  })
 })
 
 describe('buildChatErrorReply', () => {
