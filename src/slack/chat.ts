@@ -68,14 +68,18 @@ async function loadConversationMessages(
     const res = await context.client.conversations.replies({
       channel: payload.channel,
       ts: threadTs,
-      limit: 20,
+      latest: payload.ts,
+      inclusive: true,
+      limit: 100,
     })
-    return buildChatMessages(
-      (res.messages as SlackReply[] | undefined) ?? null,
-      botUserId,
-      prompt,
-      payload.ts,
-    )
+    if (res.has_more) {
+      logger.warn('chat: thread exceeds the fetched window, older context is dropped', {
+        thread_ts: threadTs,
+        channel: payload.channel,
+      })
+    }
+    const recent = ((res.messages as SlackReply[] | undefined) ?? []).slice(-20)
+    return buildChatMessages(recent, botUserId, prompt, payload.ts)
   } catch (error) {
     logger.warn('chat: failed to load thread history', {
       error: error instanceof Error ? error.message : String(error),
