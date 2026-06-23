@@ -28,7 +28,7 @@ export function DirectMention(
 
 export function NoBotMessage(
   payload: GenericMessageEvent | BotMessageEvent | FileShareMessageEvent | ThreadBroadcastMessageEvent,
-): boolean {
+): payload is GenericMessageEvent {
   return payload.subtype === undefined
 }
 
