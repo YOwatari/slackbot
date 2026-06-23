@@ -5,14 +5,12 @@ import {
   SlackOAuthApp,
 } from 'slack-cloudflare-workers'
 import { ChatMessage, LlamaChat } from '../ai/completions'
-import { executeTool, TOOLS } from '../ai/tools'
+import { TOOLS } from '../ai/tools'
 import { consoleLogger as logger } from '../lib/logger'
 import { DirectMention, formatError, NoBotMessage, safeMessage } from './util'
 
 const prefixPattern = /^!chat\s(.*)/
 const mentionPrefix = /^<@[^>]+>\s*/
-
-const MAX_TOOL_TURNS = 3
 
 export const CHAT_APOLOGY = '_応答に失敗しました。しばらくしてからもう一度試してください。_'
 
@@ -82,28 +80,6 @@ async function fetchRecentThreadReplies(
   }
 }
 
-async function runToolLoop(
-  client: LlamaChat,
-  initialMessages: ChatMessage[],
-): Promise<string> {
-  let messages = initialMessages
-  for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
-    const result = await client.chatWithTools(messages, TOOLS)
-    if (result.toolCalls.length === 0) return result.text
-    messages = [
-      ...messages,
-      { role: 'assistant', content: result.text, tool_calls: result.toolCalls },
-      ...result.toolCalls.map((call) => ({
-        role: 'tool' as const,
-        content: executeTool(call),
-        name: call.name,
-      })),
-    ]
-  }
-  logger.warn('chat: tool turn limit reached', { turns: MAX_TOOL_TURNS })
-  return ''
-}
-
 export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat) {
   app.message(
     /.*/,
@@ -139,7 +115,7 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
           : [{ role: 'user', content: prompt }]
 
       try {
-        const reply = await runToolLoop(client, initialMessages)
+        const reply = await client.chatWithTools(initialMessages, TOOLS)
         await context.say({
           text: reply || CHAT_APOLOGY,
           thread_ts: threadTs,
