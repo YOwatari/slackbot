@@ -8,7 +8,7 @@ import { ChatMessage, LlamaChat } from '../ai/completions'
 import { consoleLogger as logger } from '../lib/logger'
 import { NoBotMessage, safeMessage } from './util'
 
-const pattern = /^!chat\s(.*)/
+const prefixPattern = /^!chat\s(.*)/
 
 export const CHAT_APOLOGY = '_応答に失敗しました。しばらくしてからもう一度試してください。_'
 
@@ -50,15 +50,12 @@ function transformReply(reply: SlackReply, botUserId: string): ChatMessage | nul
   return { role: isBot ? 'assistant' : 'user', content }
 }
 
-async function loadConversationMessages(
+async function fetchRecentThreadReplies(
   context: SlackAppContext,
   payload: GenericMessageEvent,
-  prompt: string,
-): Promise<ChatMessage[]> {
+): Promise<SlackReply[] | null> {
   const threadTs = payload.thread_ts
-  if (!threadTs) return [{ role: 'user', content: prompt }]
-  const botUserId = context.botUserId
-  if (!botUserId) return [{ role: 'user', content: prompt }]
+  if (!threadTs) return null
 
   try {
     const res = await context.client.conversations.replies({
@@ -74,46 +71,61 @@ async function loadConversationMessages(
         channel: payload.channel,
       })
     }
-    const recent = ((res.messages as SlackReply[] | undefined) ?? []).slice(-20)
-    return buildChatMessages(recent, botUserId, prompt, payload.ts)
+    return ((res.messages as SlackReply[] | undefined) ?? []).slice(-20)
   } catch (error) {
     logger.warn('chat: failed to load thread history', {
       error: error instanceof Error ? error.message : String(error),
     })
-    return [{ role: 'user', content: prompt }]
+    return null
   }
 }
 
 export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat) {
   app.message(
-    pattern,
-    safeMessage(
-      async ({ context, payload }) => {
-        if (!NoBotMessage(payload)) return
-        const match = payload.text.match(pattern)
-        const prompt = match?.[1]?.trim()
-        if (!prompt) return
+    /.*/,
+    safeMessage(async ({ context, payload }) => {
+      if (!NoBotMessage(payload)) return
 
-        const messages = await loadConversationMessages(context, payload, prompt)
+      const text = payload.text
+      const prefixPrompt = text.match(prefixPattern)?.[1]?.trim()
+      const inThread = Boolean(payload.thread_ts)
+
+      // prefix が無いなら、スレッド内かつ非コマンドの平文しか相手にしない
+      if (!prefixPrompt) {
+        if (!inThread) return
+        if (/^[!<]/.test(text)) return
+        if (!text.trim()) return
+      }
+
+      const replies = inThread ? await fetchRecentThreadReplies(context, payload) : null
+      const botUserId = context.botUserId
+      // prefix 無し継続は、bot が同じスレッドで発言済みのときだけ反応する
+      if (!prefixPrompt && !replies?.some((r) => r.user === botUserId)) return
+
+      const prompt = prefixPrompt ?? text.trim()
+      const threadTs = payload.thread_ts ?? payload.ts
+
+      try {
+        const messages =
+          replies && botUserId
+            ? buildChatMessages(replies, botUserId, prompt, payload.ts)
+            : [{ role: 'user', content: prompt } as ChatMessage]
         const reply = await client.chat(messages)
         await context.say({
           text: reply,
-          thread_ts: payload.thread_ts ?? payload.ts,
+          thread_ts: threadTs,
           reply_broadcast: true,
         })
-      },
-      async ({ context, payload }) => {
-        const text = (payload as { text?: string }).text
-        const match = text?.match(pattern)
-        const prompt = match?.[1]?.trim()
-        if (!prompt) return
-        const p = payload as { thread_ts?: string; ts?: string }
+      } catch (error) {
+        logger.warn('chat: completion failed', {
+          error: error instanceof Error ? error.message : String(error),
+        })
         await context.say({
           text: CHAT_APOLOGY,
-          thread_ts: p.thread_ts ?? p.ts,
+          thread_ts: threadTs,
           reply_broadcast: true,
         })
-      },
-    ),
+      }
+    }),
   )
 }
