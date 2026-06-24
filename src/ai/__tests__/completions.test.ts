@@ -1,7 +1,3 @@
-// @cloudflare/ai-utils ships as ESM and Jest cannot parse it directly.
-// chatWithTools just delegates to runWithTools, so a no-op stub is enough.
-jest.mock('@cloudflare/ai-utils', () => ({ runWithTools: jest.fn() }))
-
 import { LlamaChat } from '../completions'
 
 const MODEL_ID = '@cf/meta/llama-4-scout-17b-16e-instruct'

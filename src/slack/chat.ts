@@ -95,20 +95,20 @@ function buildSearchImageTool(say: SayFn, threadTs: string, jpiConfig: JpiConfig
   return {
     name: 'search_image',
     description:
-      'ユーザーがキーワードに合う画像を求めたときに使う。Google Custom Search 経由で画像を 1 枚取得し、Slack のスレッドに直接投稿する。投稿は副作用として行うので、最終応答では「画像を出しました」など短く触れるだけで良い。',
+      'ユーザーが「画像」「絵」「写真」を求めたら必ずこの tool を呼ぶ。架空の応答 (例:「画像見つかりました」とだけ返す) はしてはいけない。tool が画像を Slack に直接投稿するので、最終応答は「どうぞ」のような短い一言で良い。',
     parameters: {
       type: 'object',
       properties: {
         query: {
           type: 'string',
-          description: '画像を検索するキーワード (短い名詞や名詞句が望ましい)',
+          description: '画像を検索するキーワード (短い名詞句、例: "猫", "東京タワー")',
         },
       },
       required: ['query'],
     },
     function: async (args: { query?: unknown }) => {
       const query = typeof args?.query === 'string' ? args.query.trim() : ''
-      if (!query) return '検索キーワードが空でした'
+      if (!query) return ''
       try {
         const imageUrl = await buildJpiImageUrl(jpiConfig, query)
         await say({
@@ -118,7 +118,9 @@ function buildSearchImageTool(say: SayFn, threadTs: string, jpiConfig: JpiConfig
           thread_ts: threadTs,
           reply_broadcast: true,
         })
-        return `「${query}」の画像をスレッドに投稿しました`
+        // Empty return → the chat handler suppresses the AI follow-up text,
+        // so the only message in the thread is the image block we just posted.
+        return ''
       } catch (error) {
         logger.warn('chat: search_image tool failed', { error: formatError(error) })
         return `「${query}」の画像取得に失敗しました`
@@ -172,8 +174,11 @@ export function chat(
 
       try {
         const reply = await client.chatWithTools(initialMessages, tools)
+        // Empty reply means a tool already posted to Slack as a side effect
+        // (e.g. search_image) — don't echo an extra message.
+        if (!reply) return
         await context.say({
-          text: reply || CHAT_APOLOGY,
+          text: reply,
           thread_ts: threadTs,
           reply_broadcast: true,
         })
