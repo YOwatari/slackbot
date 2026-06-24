@@ -51,12 +51,13 @@ export default {
     })
     const llama = new LlamaChat(env.AI)
 
-    keshite(app)
-    jpi(app, {
+    const jpiConfig = {
       imageEndpoint: env.JPI_IMAGE_ENDPOINT,
       signingSecret: env.JPI_SIGNING_SECRET,
-    })
-    chat(app, llama)
+    }
+    keshite(app)
+    jpi(app, jpiConfig)
+    chat(app, llama, jpiConfig)
     ping(app)
 
     app.event("message", async({}) => {})

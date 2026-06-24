@@ -4,9 +4,12 @@ import {
   SlackAppContext,
   SlackOAuthApp,
 } from 'slack-cloudflare-workers'
+import { JSXSlack } from 'jsx-slack'
 import { ChatMessage, LlamaChat } from '../ai/completions'
-import { TOOLS } from '../ai/tools'
+import { Tool, TOOLS } from '../ai/tools'
+import { buildJpiImageUrl, JpiConfig } from '../jpi/url_builder'
 import { consoleLogger as logger } from '../lib/logger'
+import { jpiBlocks } from './views/jpi'
 import { DirectMention, formatError, NoBotMessage, safeMessage } from './util'
 
 const prefixPattern = /^!chat\s(.*)/
@@ -80,7 +83,55 @@ async function fetchRecentThreadReplies(
   }
 }
 
-export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat) {
+type SayFn = (args: {
+  text?: string
+  blocks?: unknown
+  link_names?: boolean
+  thread_ts?: string
+  reply_broadcast?: boolean
+}) => Promise<unknown>
+
+function buildSearchImageTool(say: SayFn, threadTs: string, jpiConfig: JpiConfig): Tool {
+  return {
+    name: 'search_image',
+    description:
+      'ユーザーがキーワードに合う画像を求めたときに使う。Google Custom Search 経由で画像を 1 枚取得し、Slack のスレッドに直接投稿する。投稿は副作用として行うので、最終応答では「画像を出しました」など短く触れるだけで良い。',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: '画像を検索するキーワード (短い名詞や名詞句が望ましい)',
+        },
+      },
+      required: ['query'],
+    },
+    function: async (args: { query?: unknown }) => {
+      const query = typeof args?.query === 'string' ? args.query.trim() : ''
+      if (!query) return '検索キーワードが空でした'
+      try {
+        const imageUrl = await buildJpiImageUrl(jpiConfig, query)
+        await say({
+          text: query,
+          blocks: JSXSlack(jpiBlocks({ text: query, url: imageUrl })),
+          link_names: false,
+          thread_ts: threadTs,
+          reply_broadcast: true,
+        })
+        return `「${query}」の画像をスレッドに投稿しました`
+      } catch (error) {
+        logger.warn('chat: search_image tool failed', { error: formatError(error) })
+        return `「${query}」の画像取得に失敗しました`
+      }
+    },
+  }
+}
+
+export function chat(
+  app: SlackApp<any> | SlackOAuthApp<any>,
+  client: LlamaChat,
+  jpiConfig: JpiConfig,
+) {
   app.message(
     /.*/,
     safeMessage(async ({ context, payload }) => {
@@ -114,8 +165,13 @@ export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat)
           ? buildChatMessages(replies, botUserId, prompt, payload.ts)
           : [{ role: 'user', content: prompt }]
 
+      const tools: Tool[] = [
+        ...TOOLS,
+        buildSearchImageTool(context.say as SayFn, threadTs, jpiConfig),
+      ]
+
       try {
-        const reply = await client.chatWithTools(initialMessages, TOOLS)
+        const reply = await client.chatWithTools(initialMessages, tools)
         await context.say({
           text: reply || CHAT_APOLOGY,
           thread_ts: threadTs,
