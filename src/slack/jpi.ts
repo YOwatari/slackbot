@@ -28,6 +28,8 @@ export function jpi(app: SlackApp<any> | SlackOAuthApp<any>, config: JpiConfig) 
         text: keyword,
         blocks: JSXSlack(jpiBlocks({ text: keyword, url: imageUrl })),
         link_names: false,
+        thread_ts: payload.thread_ts ?? payload.ts,
+        reply_broadcast: !payload.thread_ts,
       })
     }),
   )
