@@ -91,7 +91,12 @@ type SayFn = (args: {
   reply_broadcast?: boolean
 }) => Promise<unknown>
 
-function buildSearchImageTool(say: SayFn, threadTs: string, jpiConfig: JpiConfig): Tool {
+function buildSearchImageTool(
+  say: SayFn,
+  threadTs: string,
+  broadcast: boolean,
+  jpiConfig: JpiConfig,
+): Tool {
   return {
     name: 'search_image',
     description:
@@ -116,7 +121,7 @@ function buildSearchImageTool(say: SayFn, threadTs: string, jpiConfig: JpiConfig
           blocks: JSXSlack(jpiBlocks({ text: query, url: imageUrl })),
           link_names: false,
           thread_ts: threadTs,
-          reply_broadcast: true,
+          reply_broadcast: broadcast,
         })
         // Empty return → the chat handler suppresses the AI follow-up text,
         // so the only message in the thread is the image block we just posted.
@@ -162,6 +167,9 @@ export function chat(
 
       const prompt = explicitPrompt ?? text.trim()
       const threadTs = payload.thread_ts ?? payload.ts
+      // bot がこのスレッドに初めて投稿する時だけ channel にも broadcast する。
+      // スレッドが既に立っている (継続) ときは中だけで完結させてノイズを抑える。
+      const broadcast = !inThread
       const initialMessages: ChatMessage[] =
         replies && botUserId
           ? buildChatMessages(replies, botUserId, prompt, payload.ts)
@@ -169,7 +177,7 @@ export function chat(
 
       const tools: Tool[] = [
         ...TOOLS,
-        buildSearchImageTool(context.say as SayFn, threadTs, jpiConfig),
+        buildSearchImageTool(context.say as SayFn, threadTs, broadcast, jpiConfig),
       ]
 
       try {
@@ -180,14 +188,14 @@ export function chat(
         await context.say({
           text: reply,
           thread_ts: threadTs,
-          reply_broadcast: true,
+          reply_broadcast: broadcast,
         })
       } catch (error) {
         logger.warn('chat: completion failed', { error: formatError(error) })
         await context.say({
           text: CHAT_APOLOGY,
           thread_ts: threadTs,
-          reply_broadcast: true,
+          reply_broadcast: broadcast,
         })
       }
     }),
