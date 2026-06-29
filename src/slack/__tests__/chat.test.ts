@@ -1,4 +1,4 @@
-import { buildChatMessages, CHAT_APOLOGY } from '../chat'
+import { buildChatMessages, CHAT_APOLOGY, parseSlackMessageUrl } from '../chat'
 
 const BOT_ID = 'UBOT'
 
@@ -121,6 +121,24 @@ describe('buildChatMessages', () => {
       { role: 'user', content: 'two' },
       { role: 'user', content: 'now' },
     ])
+  })
+})
+
+describe('parseSlackMessageUrl', () => {
+  it('returns channel and ts when the URL matches Slack archive format', () => {
+    expect(
+      parseSlackMessageUrl('https://example.slack.com/archives/CXXXXXXX/p1713249713168409'),
+    ).toEqual({ channel: 'CXXXXXXX', ts: '1713249713.168409' })
+  })
+
+  it('returns null for unrelated strings', () => {
+    expect(parseSlackMessageUrl('not a url')).toBeNull()
+  })
+
+  it('returns null when the URL is for a different host', () => {
+    expect(
+      parseSlackMessageUrl('https://example.com/archives/CXXXXXXX/p1713249713168409'),
+    ).toBeNull()
   })
 })
 

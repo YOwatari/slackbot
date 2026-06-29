@@ -17,6 +17,16 @@ const mentionPrefix = /^<@[^>]+>\s*/
 
 export const CHAT_APOLOGY = '_応答に失敗しました。しばらくしてからもう一度試してください。_'
 
+export function parseSlackMessageUrl(url: string): { channel: string; ts: string } | null {
+  const match = url.match(/https:\/\/[\w-]+\.slack\.com\/archives\/([\w-]+)\/p(\d+)/)
+  if (!match) return null
+  const channel = match[1]
+  const digits = match[2]
+  const index = digits.length - 6
+  const ts = `${digits.slice(0, index)}.${digits.slice(index)}`
+  return { channel, ts }
+}
+
 type SlackReply = {
   user?: string
   text?: string
@@ -90,6 +100,40 @@ type SayFn = (args: {
   thread_ts?: string
   reply_broadcast?: boolean
 }) => Promise<unknown>
+
+type ChatDeleteFn = (args: { channel: string; ts: string }) => Promise<unknown>
+
+function buildDeleteMessageTool(deleteMessage: ChatDeleteFn): Tool {
+  return {
+    name: 'delete_message',
+    description:
+      'ユーザーが Slack のメッセージ URL を貼って削除を依頼したら必ずこの tool を呼ぶ。URL から channel と ts を取り出して該当メッセージを削除する。架空の応答 (例:「削除しました」だけ返す) はしてはいけない。',
+    parameters: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description:
+            '削除する Slack メッセージへのリンク (https://<workspace>.slack.com/archives/<channel>/p<ts> の形式)',
+        },
+      },
+      required: ['url'],
+    },
+    function: async (args: { url?: unknown }) => {
+      const url = typeof args?.url === 'string' ? args.url.trim() : ''
+      if (!url) return 'URL が空でした'
+      const parsed = parseSlackMessageUrl(url)
+      if (!parsed) return 'URL が Slack のメッセージ URL の形式ではありませんでした'
+      try {
+        await deleteMessage(parsed)
+        return ''
+      } catch (error) {
+        logger.warn('chat: delete_message tool failed', { error: formatError(error) })
+        return 'メッセージの削除に失敗しました'
+      }
+    },
+  }
+}
 
 function buildSearchImageTool(
   say: SayFn,
@@ -178,6 +222,7 @@ export function chat(
       const tools: Tool[] = [
         ...TOOLS,
         buildSearchImageTool(context.say as SayFn, threadTs, broadcast, jpiConfig),
+        buildDeleteMessageTool((args) => context.client.chat.delete(args)),
       ]
 
       try {

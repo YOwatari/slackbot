@@ -5,8 +5,6 @@ import { handleJpiImage } from "./jpi/image_endpoint";
 import { jpi } from "./slack/jpi";
 import { LlamaChat } from "./ai/completions";
 import { chat } from "./slack/chat";
-import { keshite } from "./slack/keshite";
-import { ping } from "./slack/ping";
 import { consoleLogger as logger } from "./lib/logger";
 
 type Env = SlackOAuthAndOIDCEnv & GoogleImageEnv & {
@@ -55,10 +53,8 @@ export default {
       imageEndpoint: env.JPI_IMAGE_ENDPOINT,
       signingSecret: env.JPI_SIGNING_SECRET,
     }
-    keshite(app)
     jpi(app, jpiConfig)
     chat(app, llama, jpiConfig)
-    ping(app)
 
     app.event("message", async({}) => {})
     return await app.run(request, ctx)
