@@ -1,9 +1,4 @@
-import {
-  GenericMessageEvent,
-  SlackApp,
-  SlackAppContext,
-  SlackOAuthApp,
-} from 'slack-cloudflare-workers'
+import { GenericMessageEvent, SlackApp, SlackAppContext, SlackOAuthApp } from 'slack-cloudflare-workers'
 import { JSXSlack } from 'jsx-slack'
 import { ChatMessage, LlamaChat } from '../ai/completions'
 import { Tool, TOOLS } from '../ai/tools'
@@ -135,12 +130,7 @@ function buildDeleteMessageTool(deleteMessage: ChatDeleteFn): Tool {
   }
 }
 
-function buildSearchImageTool(
-  say: SayFn,
-  threadTs: string,
-  broadcast: boolean,
-  jpiConfig: JpiConfig,
-): Tool {
+function buildSearchImageTool(say: SayFn, threadTs: string, broadcast: boolean, jpiConfig: JpiConfig): Tool {
   return {
     name: 'search_image',
     description:
@@ -178,11 +168,7 @@ function buildSearchImageTool(
   }
 }
 
-export function chat(
-  app: SlackApp<any> | SlackOAuthApp<any>,
-  client: LlamaChat,
-  jpiConfig: JpiConfig,
-) {
+export function chat(app: SlackApp<any> | SlackOAuthApp<any>, client: LlamaChat, jpiConfig: JpiConfig) {
   app.message(
     /.*/,
     safeMessage(async ({ context, payload }) => {

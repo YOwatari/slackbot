@@ -15,8 +15,8 @@ describe('chooseRandom', () => {
   })
 })
 
-describe('choose_random tool', () => {
-  const tool = TOOLS.find((t) => t.name === 'choose_random')!
+describe('pick_one tool', () => {
+  const tool = TOOLS.find((t) => t.name === 'pick_one')!
   const callFn = (args: unknown) => tool.function!(args as { items?: unknown })
 
   it('splits a CSV string and returns one item', async () => {
@@ -41,8 +41,8 @@ describe('choose_random tool', () => {
 })
 
 describe('TOOLS', () => {
-  it('exposes choose_random with a flat string parameter (Workers AI flat schema)', () => {
-    const t = TOOLS.find((tool) => tool.name === 'choose_random')
+  it('exposes pick_one with a flat string parameter (Workers AI flat schema)', () => {
+    const t = TOOLS.find((tool) => tool.name === 'pick_one')
     expect(t).toBeDefined()
     expect(t?.parameters).toMatchObject({
       type: 'object',
@@ -51,7 +51,18 @@ describe('TOOLS', () => {
     })
   })
 
-  it('attaches a callable function to each tool (runWithTools requires it)', () => {
+  it('no longer registers the legacy choose_random name', () => {
+    const t = TOOLS.find((tool) => tool.name === 'choose_random')
+    expect(t).toBeUndefined()
+  })
+
+  it('description narrows pick_one to picking exactly one item and rejects shuffle-style requests', () => {
+    const t = TOOLS.find((tool) => tool.name === 'pick_one')!
+    expect(t.description).toMatch(/1\s*つ|一\s*つ|1件/)
+    expect(t.description).toMatch(/シャッフル|順番|並び/)
+  })
+
+  it('attaches a callable function to each tool', () => {
     for (const tool of TOOLS) {
       expect(typeof tool.function).toBe('function')
     }

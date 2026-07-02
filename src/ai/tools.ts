@@ -24,9 +24,13 @@ function parseCsvItems(raw: unknown): string[] {
 
 export const TOOLS: Tool[] = [
   {
-    name: 'choose_random',
-    description:
-      'ユーザーが複数の選択肢から 1 つ選ぶよう求めたときに使う。選択肢をカンマ区切りで items に入れて渡すと、その中からランダムに 1 つ返す。',
+    name: 'pick_one',
+    description: [
+      '選択肢の中から 1 つだけをランダムに選んで返す tool。',
+      '用途: 「A か B か選んで」「どっちにする？」「どれか決めて」のような 1 件抽選の依頼のみ。',
+      '用途外: 「シャッフル」「順番を決めて」「並び替え」のような複数件の順序付け依頼にはこの tool を呼んではいけない。対応不可なので tool を呼ばず自然文で返す。',
+      '引数 items にはカンマ区切り (半角 , または全角 、) の選択肢文字列を渡す (例: "カレー,ラーメン,うどん")。',
+    ].join('\n'),
     parameters: {
       type: 'object',
       properties: {

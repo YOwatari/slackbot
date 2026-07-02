@@ -48,6 +48,17 @@ describe('LlamaChat', () => {
     await expect(client.completions('Hi')).rejects.toThrow('binding down')
   })
 
+  it('system prompt mentions pick_one and warns against shuffle-style requests', async () => {
+    const ai = fakeAi(async () => ({ response: 'ok' }))
+    const client = new LlamaChat(ai)
+    await client.completions('hi')
+    const [, body] = ai.run.mock.calls[0]
+    const system = body.messages[0].content as string
+    expect(system).toMatch(/pick_one/)
+    expect(system).toMatch(/シャッフル|順番|並び/)
+    expect(system).not.toMatch(/choose_random/)
+  })
+
   describe('chat (multi-turn)', () => {
     it('prepends the system prompt to the caller-supplied messages', async () => {
       const ai = fakeAi(async () => ({ response: 'ok' }))
@@ -75,6 +86,75 @@ describe('LlamaChat', () => {
     })
   })
 
-  // chatWithTools delegates to @cloudflare/ai-utils' runWithTools; behaviour is
-  // exercised in production rather than mocked here.
+  describe('chatWithTools text-formatted tool_call fallback', () => {
+    const buildTool = (fn: (args: any) => Promise<string>) => ({
+      name: 'pick_one',
+      description: 'pick 1',
+      parameters: {
+        type: 'object' as const,
+        properties: { items: { type: 'string' as const, description: 'csv' } },
+        required: ['items'],
+      },
+      function: fn,
+    })
+
+    it('executes a tool when the model returns the tool_call JSON as response text (parameters key)', async () => {
+      const spy = jest.fn(async () => 'picked')
+      const ai = fakeAi(async () => ({
+        response: '{"name":"pick_one","parameters":{"items":"a,b,c"}}',
+      }))
+      const client = new LlamaChat(ai)
+      const out = await client.chatWithTools(
+        [{ role: 'user', content: 'どれか選んで a,b,c' }],
+        [buildTool(spy)],
+      )
+      expect(spy).toHaveBeenCalledWith({ items: 'a,b,c' })
+      expect(out).toBe('picked')
+    })
+
+    it('also handles the OpenAI-style arguments key', async () => {
+      const spy = jest.fn(async () => 'picked')
+      const ai = fakeAi(async () => ({
+        response: '{"name":"pick_one","arguments":{"items":"x,y"}}',
+      }))
+      const client = new LlamaChat(ai)
+      const out = await client.chatWithTools(
+        [{ role: 'user', content: 'pick one' }],
+        [buildTool(spy)],
+      )
+      expect(spy).toHaveBeenCalledWith({ items: 'x,y' })
+      expect(out).toBe('picked')
+    })
+
+    it('returns response text verbatim when it is not a tool_call JSON', async () => {
+      const ai = fakeAi(async () => ({ response: 'こんにちは' }))
+      const client = new LlamaChat(ai)
+      const out = await client.chatWithTools(
+        [{ role: 'user', content: 'hi' }],
+        [buildTool(jest.fn())],
+      )
+      expect(out).toBe('こんにちは')
+    })
+
+    it('prefers structured tool_calls over response text', async () => {
+      const spy = jest.fn(async () => 'from-structured')
+      const ai = fakeAi(async () => ({
+        response: '{"name":"pick_one","parameters":{"items":"junk"}}',
+        tool_calls: [
+          {
+            id: 't1',
+            type: 'function',
+            function: { name: 'pick_one', arguments: JSON.stringify({ items: 'a,b' }) },
+          },
+        ],
+      }))
+      const client = new LlamaChat(ai)
+      const out = await client.chatWithTools(
+        [{ role: 'user', content: 'x' }],
+        [buildTool(spy)],
+      )
+      expect(spy).toHaveBeenCalledWith({ items: 'a,b' })
+      expect(out).toBe('from-structured')
+    })
+  })
 })
