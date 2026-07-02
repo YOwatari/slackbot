@@ -52,7 +52,13 @@ export class LlamaChat {
       temperature: 0.8,
     })
     const result = raw as { response?: unknown; tool_calls?: unknown }
-    const toolCalls = parseToolCalls(result.tool_calls)
+    let toolCalls = parseToolCalls(result.tool_calls)
+    if (toolCalls.length === 0) {
+      // Workers AI x Llama-4-Scout sometimes emits the tool_call as a JSON
+      // literal in `response` instead of populating `tool_calls`. Parse it
+      // out so the tool actually fires instead of leaking raw JSON to Slack.
+      toolCalls = parseToolCallsFromResponseText(result.response)
+    }
     if (toolCalls.length === 0) return extractText(raw)
 
     // A tool was invoked — return the tool's own output verbatim and skip the
@@ -119,4 +125,23 @@ function parseToolCalls(raw: unknown): ParsedToolCall[] {
     }
     return [{ id: typeof e.id === 'string' ? e.id : undefined, name: fn.name, arguments: args }]
   })
+}
+
+function parseToolCallsFromResponseText(response: unknown): ParsedToolCall[] {
+  if (typeof response !== 'string') return []
+  const trimmed = response.trim()
+  if (!trimmed.startsWith('{')) return []
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    return []
+  }
+  if (!parsed || typeof parsed !== 'object') return []
+  const obj = parsed as { name?: unknown; parameters?: unknown; arguments?: unknown }
+  if (typeof obj.name !== 'string') return []
+  const argsRaw = obj.parameters ?? obj.arguments
+  const args =
+    argsRaw && typeof argsRaw === 'object' && !Array.isArray(argsRaw) ? (argsRaw as Record<string, unknown>) : {}
+  return [{ name: obj.name, arguments: args }]
 }
