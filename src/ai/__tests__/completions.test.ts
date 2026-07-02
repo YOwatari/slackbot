@@ -48,6 +48,17 @@ describe('LlamaChat', () => {
     await expect(client.completions('Hi')).rejects.toThrow('binding down')
   })
 
+  it('system prompt mentions pick_one and warns against shuffle-style requests', async () => {
+    const ai = fakeAi(async () => ({ response: 'ok' }))
+    const client = new LlamaChat(ai)
+    await client.completions('hi')
+    const [, body] = ai.run.mock.calls[0]
+    const system = body.messages[0].content as string
+    expect(system).toMatch(/pick_one/)
+    expect(system).toMatch(/シャッフル|順番|並び/)
+    expect(system).not.toMatch(/choose_random/)
+  })
+
   describe('chat (multi-turn)', () => {
     it('prepends the system prompt to the caller-supplied messages', async () => {
       const ai = fakeAi(async () => ({ response: 'ok' }))
