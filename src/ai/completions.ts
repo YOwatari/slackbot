@@ -1,7 +1,7 @@
 import { Ai } from '@cloudflare/workers-types'
 import { Tool } from './tools'
 
-const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+const MODEL = '@cf/qwen/qwen3-30b-a3b-fp8'
 const SYSTEM_PROMPT = [
   'あなたはチャットボットです。短い返答が望ましいです。特に指示が無い場合は日本語で応答してください。',
   '',
@@ -9,6 +9,9 @@ const SYSTEM_PROMPT = [
   '- ユーザーが「画像」「絵」「写真」を求めたら、必ず search_image ツールを呼ぶこと。架空の結果 (例: 「画像見つかりました」だけ返す) は絶対にしてはいけません。',
   '- ユーザーが選択肢の中から 1 つ選ぶよう求めたら、必ず pick_one ツールを呼ぶこと。ただし「シャッフル」「順番を決めて」「並び替え」のような複数件の順序付け依頼にはこの tool は使えないので、tool を呼ばずに自然文で応答すること。',
   '- tool を呼ぶときは必ず構造化された tool_call として呼び、JSON をメッセージ本文に書かないこと。',
+  // Qwen3 の思考モードを無効化する soft switch。有効のままだと reasoning が
+  // max_tokens を使い切って本文が空になることがある。
+  '/no_think',
 ].join('\n')
 const MAX_TOKENS = 512
 

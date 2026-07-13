@@ -1,6 +1,6 @@
 import { LlamaChat } from '../completions'
 
-const MODEL_ID = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+const MODEL_ID = '@cf/qwen/qwen3-30b-a3b-fp8'
 
 function fakeAi(impl: (...args: any[]) => any) {
   return { run: jest.fn(impl) } as any
@@ -46,6 +46,15 @@ describe('LlamaChat', () => {
     })
     const client = new LlamaChat(ai)
     await expect(client.completions('Hi')).rejects.toThrow('binding down')
+  })
+
+  it('system prompt disables Qwen3 thinking mode with /no_think', async () => {
+    const ai = fakeAi(async () => ({ response: 'ok' }))
+    const client = new LlamaChat(ai)
+    await client.completions('hi')
+    const [, body] = ai.run.mock.calls[0]
+    const system = body.messages[0].content as string
+    expect(system).toMatch(/\/no_think/)
   })
 
   it('system prompt mentions pick_one and warns against shuffle-style requests', async () => {
