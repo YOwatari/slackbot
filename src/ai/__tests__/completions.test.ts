@@ -1,6 +1,6 @@
 import { LlamaChat } from '../completions'
 
-const MODEL_ID = '@cf/meta/llama-4-scout-17b-16e-instruct'
+const MODEL_ID = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 
 function fakeAi(impl: (...args: any[]) => any) {
   return { run: jest.fn(impl) } as any

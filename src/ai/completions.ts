@@ -1,7 +1,7 @@
 import { Ai } from '@cloudflare/workers-types'
 import { Tool } from './tools'
 
-const MODEL = '@cf/meta/llama-4-scout-17b-16e-instruct'
+const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 const SYSTEM_PROMPT = [
   'あなたはチャットボットです。短い返答が望ましいです。特に指示が無い場合は日本語で応答してください。',
   '',
@@ -34,11 +34,11 @@ export class LlamaChat {
   }
 
   async chatWithTools(messages: ChatMessage[], tools: Tool[]): Promise<string> {
-    // Workers AI's Llama 4 Scout requires tools wrapped as
+    // Workers AI accepts tools wrapped in OpenAI's shape
     // { type: 'function', function: { name, description, parameters } }
-    // and returns tool_calls in the same wrapped shape — neither shape is
-    // handled by @cloudflare/ai-utils' runWithTools, so we drive the loop
-    // ourselves.
+    // but the tool_calls it returns vary by model (wrapped or flat), and
+    // @cloudflare/ai-utils' runWithTools handles neither reliably, so we
+    // drive the loop ourselves.
     const wrappedTools = tools.map((t) => ({
       type: 'function' as const,
       function: { name: t.name, description: t.description, parameters: t.parameters },
@@ -55,7 +55,7 @@ export class LlamaChat {
     const result = raw as { response?: unknown; tool_calls?: unknown }
     let toolCalls = parseToolCalls(result.tool_calls)
     if (toolCalls.length === 0) {
-      // Workers AI x Llama-4-Scout sometimes emits the tool_call as a JSON
+      // Some Workers AI models sometimes emit the tool_call as a JSON
       // literal in `response` instead of populating `tool_calls`. Parse it
       // out so the tool actually fires instead of leaking raw JSON to Slack.
       toolCalls = parseToolCallsFromResponseText(result.response)
@@ -100,10 +100,10 @@ function safeStringify(value: unknown): string {
 
 type ParsedToolCall = { id?: string; name: string; arguments: Record<string, unknown> }
 
-// Workers AI's Llama 4 Scout returns tool_calls in OpenAI's wrapped shape:
+// Some Workers AI models return tool_calls in OpenAI's wrapped shape:
 //   { id, type: 'function', function: { name, arguments } }
-// where arguments is sometimes a JSON-encoded string. Accept the flat shape
-// too (in case Hermes or any future model returns it directly).
+// where arguments is sometimes a JSON-encoded string, while others return
+// the flat { name, arguments } shape directly. Accept both.
 function parseToolCalls(raw: unknown): ParsedToolCall[] {
   if (!Array.isArray(raw)) return []
   return raw.flatMap((entry): ParsedToolCall[] => {
